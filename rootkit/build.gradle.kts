@@ -1,6 +1,9 @@
+import org.jetbrains.kotlin.cfg.pseudocode.and
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    `maven-publish`
 }
 
 android {
@@ -40,4 +43,19 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+afterEvaluate{
+    android.libraryVariants.onEach{
+        variant ->
+        publishing {
+            publications {
+                create<MavenPublication>(variant.name) {
+                    groupId = "com.ssithara"
+                    artifactId = "rootkit"
+                    version = "1.0.0"
+                }
+            }
+        }
+    }
 }
