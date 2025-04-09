@@ -45,16 +45,30 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
-afterEvaluate{
-    android.libraryVariants.onEach{
-        variant ->
-        publishing {
-            publications {
-                create<MavenPublication>(variant.name) {
-                    groupId = "com.ssithara"
-                    artifactId = "rootkit"
-                    version = "1.0.0"
-                }
+//afterEvaluate{
+//    android.libraryVariants.onEach{
+//        variant ->
+//        publishing {
+//            publications {
+//                create<MavenPublication>(variant.name) {
+//                    groupId = "com.ssithara"
+//                    artifactId = "rootkit"
+//                    version = "1.0.0"
+//                }
+//            }
+//        }
+//    }
+//}
+
+publishing {
+    publications {
+        create<MavenPublication>("release") {
+            groupId = "com.ssithara"
+            artifactId = "rootkit"
+            version = "1.0.0"
+
+            afterEvaluate {
+                from(components["release"])
             }
         }
     }
