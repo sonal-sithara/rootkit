@@ -16,7 +16,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 26
+        minSdk = 24
 
         externalNativeBuild.ndkBuild {
             arguments += "-j${Runtime.getRuntime().availableProcessors()}"
