@@ -27,7 +27,10 @@ class RootKit(private val context: Context) {
     }
 
     fun isRootedDevice(): String {
-        return EncryptionService.encryptWithBase64Key(magiskDetection.run().name)
-            ?: DetectorResult.Result.NOT_FOUND.name;
+        return EncryptionService.encryptWithBase64Key(magiskDetection.run().name);
+    }
+
+    fun encryptData(data: String): String {
+        return EncryptionService.encryptWithBase64Key(data)
     }
 }
