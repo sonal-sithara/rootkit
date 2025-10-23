@@ -34,9 +34,13 @@ android {
         }
     }
 
-//    externalNativeBuild.ndkBuild {
-//        path("src/main/cpp/Android.mk")
-//    }
+    buildFeatures {
+        prefab = true
+    }
+
+    externalNativeBuild.ndkBuild {
+        path("src/main/cpp/Android.mk")
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -63,6 +67,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation(libs.rootbeer.lib)
+    implementation(libs.xposeddetector)
 }
 
 publishing {
