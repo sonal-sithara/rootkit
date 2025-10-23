@@ -25,7 +25,7 @@ static inline bool is_mountpaths_detected();
 static inline bool is_supath_detected();
 
 static const char *TAG = "DetectMagiskNative";
-static char *blacklistedMountPaths[] = {
+static const char *blacklistedMountPaths[] = {
         "magisk",
         "core/mirror",
         "core/img"
