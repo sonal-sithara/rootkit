@@ -6,7 +6,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 
 @RequiresApi(Build.VERSION_CODES.Q)
-class AppZygotePreload : ZygotePreload {
+class AppZygote : ZygotePreload {
     override fun doPreload(p0: ApplicationInfo) {
         System.loadLibrary("rootkit")
     }
