@@ -58,7 +58,7 @@ class EmulatorDetection(context: Context) : DetectorResult(context) {
     private fun isEmulator2(): Boolean {
         try {
             for (i in paths.indices) {
-                val file = File(paths.get(i))
+                val file = File(paths.get(i) ?: "")
                 if (file.exists()) {
                     return true
                 }
