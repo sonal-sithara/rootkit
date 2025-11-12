@@ -7,7 +7,11 @@ import android.util.Log
 class RootKit(private val context: Context) {
     private var activity: Activity? = null
     private val overlayDetection by lazy { OverlayDetection() }
+    private val magiskHideDetection by lazy { MagiskHideDetection(context) }
     private val magiskDetection by lazy { MagiskDetection(context) }
+    private val rootDetection by lazy { RootDetection(context) }
+    private val debuggerDetection by lazy { DebuggerDetection(context) }
+    private val emulatorDetection by lazy { EmulatorDetection(context) }
 
 
     fun setSecureFlags() {
@@ -27,7 +31,29 @@ class RootKit(private val context: Context) {
     }
 
     fun isRootedDevice(): String {
-        return EncryptionService.encryptWithBase64Key(magiskDetection.run().name);
+        val detections = listOf(
+            magiskHideDetection.run(),
+            magiskDetection.run(),
+            rootDetection.run()
+        )
+
+        val isRooted = if (DetectorResult.Result.FOUND in detections)
+            DetectorResult.Result.FOUND
+        else
+            DetectorResult.Result.NOT_FOUND
+
+        return EncryptionService.encryptWithBase64Key(isRooted.name)
+    }
+
+
+    fun isDebuggerDetected(): String {
+        val result = debuggerDetection.run()
+        return EncryptionService.encryptWithBase64Key(result.name)
+    }
+
+    fun isEmulatorDevice(): String {
+        val result = emulatorDetection.run()
+        return EncryptionService.encryptWithBase64Key(result.name)
     }
 
     fun encryptData(data: String): String {
