@@ -39,7 +39,17 @@ class MagiskHideDetection(context: Context) : DetectorResult(context) {
         MagiskStubInfoDto("Magisk v24.2", 2, 2, 1, 1, "iuf.vF"),
         MagiskStubInfoDto("Magisk v24.1", 2, 2, 1, 1, "d.g"),
         MagiskStubInfoDto("Magisk v24.0", 2, 2, 1, 1, "S.T"),
-        MagiskStubInfoDto("v26.4-kitsune-2", 2, 2, 1, 1, "f.B1")
+        MagiskStubInfoDto("v26.4-kitsune-2", 2, 2, 1, 1, "f.B1"),
+        MagiskStubInfoDto("Magisk (b62835cb) (28102)", 2, 2, 1, 1, "c.t"),
+        MagiskStubInfoDto("Magisk (1e3edb88) (28103)", 2, 2, 1, 1, "igA.VV"),
+        MagiskStubInfoDto("Magisk (427a1ca4) (28104)", 2, 2, 1, 1, "g.fF"),
+        MagiskStubInfoDto("Magisk (b1dc47a0) (29001)", 2, 2, 1, 1, "zrx.KW"),
+        MagiskStubInfoDto("Magisk v29.0", 2, 2, 1, 1, "u.H"),
+        MagiskStubInfoDto("Magisk v30.0", 2, 2, 1, 1, "zy.sz"),
+        MagiskStubInfoDto("Magisk v30.1", 2, 2, 1, 1, "t.Xi"),
+        MagiskStubInfoDto("Magisk v30.2", 2, 2, 1, 1, "v.g"),
+        MagiskStubInfoDto("Magisk v30.3", 2, 2, 1, 1, "b.xj"),
+        MagiskStubInfoDto("Magisk v30.4", 2, 2, 1, 1, "pW.ECr")
     )
 
     @SuppressLint("QueryPermissionsNeeded")
