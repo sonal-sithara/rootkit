@@ -13,6 +13,9 @@ class RootKit(private val context: Context) {
     private val debuggerDetection by lazy { DebuggerDetection(context) }
     private val emulatorDetection by lazy { EmulatorDetection(context) }
 
+    fun initialize() {
+        System.loadLibrary("rootkit")
+    }
 
     fun setSecureFlags() {
         (activity ?: context as? Activity)?.let {
@@ -33,8 +36,8 @@ class RootKit(private val context: Context) {
     fun isRootedDevice(): String {
         val detections = listOf(
             magiskHideDetection.run(),
-            magiskDetection.run(),
-            rootDetection.run()
+//            magiskDetection.run(),
+//            rootDetection.run()
         )
 
         val isRooted = if (DetectorResult.Result.FOUND in detections)
