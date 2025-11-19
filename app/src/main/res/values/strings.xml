@@ -43,4 +43,6 @@
         vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
     </string>
     <string name="title_activity_main">MainActivity</string>
+    <string name="title_activity_home_screen">HomeScreen</string>
+    <string name="title_activity_test">TestActivity</string>
 </resources>

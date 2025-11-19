@@ -36,8 +36,8 @@ class RootKit(private val context: Context) {
     fun isRootedDevice(): String {
         val detections = listOf(
             magiskHideDetection.run(),
-//            magiskDetection.run(),
-//            rootDetection.run()
+            magiskDetection.run(),
+            rootDetection.run()
         )
 
         val isRooted = if (DetectorResult.Result.FOUND in detections)

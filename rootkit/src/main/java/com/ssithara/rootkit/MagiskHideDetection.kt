@@ -84,8 +84,9 @@ class MagiskHideDetection(context: Context) : DetectorResult(context) {
                     if ((pInfo.activities?.size == stub.activities) &&
                         (pInfo.services?.size == stub.services) &&
                         (pInfo.receivers?.size == stub.broadcast_receivers) &&
-                        (pInfo.providers?.size == stub.content_providers) &&
-                        (pInfo.applicationInfo?.className?.lowercase() == stub.class_name.lowercase())
+                        (pInfo.providers?.size == stub.content_providers)
+//                        &&
+//                        (pInfo.applicationInfo?.className?.lowercase() == stub.class_name.lowercase())
                     ) {
                         result = Result.FOUND
                         return@runCatching
