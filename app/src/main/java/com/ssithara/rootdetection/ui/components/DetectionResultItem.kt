@@ -34,6 +34,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.ssithara.rootdetection.ui.model.DetectionInfo
+import com.ssithara.rootdetection.ui.model.DetectionInfoMapper
 import com.ssithara.rootdetection.ui.model.DetectionResult
 import com.ssithara.rootdetection.ui.theme.InsecureRed
 import com.ssithara.rootdetection.ui.theme.SecureGreen
@@ -46,6 +48,7 @@ import com.ssithara.rootkit.core.Result
  * @param description A brief description of what this detection checks
  * @param result The current detection result state
  * @param details Optional map of sub-check names to their results
+ * @param category The detection category for mapping sub-check names (e.g., "frida", "xposed")
  * @param isExpanded Whether the item is currently expanded
  * @param onExpandToggle Callback when the expand/collapse is toggled
  * @param onRunClick Optional callback for running an individual check
@@ -57,6 +60,7 @@ fun DetectionResultItem(
     description: String,
     result: DetectionResult,
     details: Map<String, Boolean>? = null,
+    category: String? = null,
     isExpanded: Boolean = false,
     onExpandToggle: () -> Unit = {},
     onRunClick: (() -> Unit)? = null,
@@ -140,11 +144,16 @@ fun DetectionResultItem(
                         )
                         
                         detailMap.forEach { (checkName, isDetected) ->
-                            DetailCheckRow(
-                                name = checkName,
-                                isDetected = isDetected
-                            )
-                        }
+                             val detectionInfo = if (category != null) {
+                                 DetectionInfoMapper.mapKeyName(checkName, category)
+                             } else {
+                                 DetectionInfo(checkName, "")
+                             }
+                             DetailCheckRow(
+                                 detectionInfo = detectionInfo,
+                                 isDetected = isDetected
+                             )
+                         }
                     }
                 }
             }
@@ -154,7 +163,7 @@ fun DetectionResultItem(
 
 @Composable
 private fun DetailCheckRow(
-    name: String,
+    detectionInfo: DetectionInfo,
     isDetected: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -177,13 +186,24 @@ private fun DetailCheckRow(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Text(
-            text = name,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (isDetected) InsecureRed else MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(1.dp)
+        ) {
+            Text(
+                text = detectionInfo.displayName,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium,
+                color = if (isDetected) InsecureRed else MaterialTheme.colorScheme.onSurface
+            )
+            if (detectionInfo.description.isNotEmpty()) {
+                Text(
+                    text = detectionInfo.description,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         Text(
             text = if (isDetected) "Found" else "Clear",
@@ -215,17 +235,56 @@ fun DetectionResultItemSecurePreview() {
 
 @Preview(showBackground = true)
 @Composable
-fun DetectionResultItemInsecurePreview() {
+fun DetectionResultItemFridaPreview() {
     MaterialTheme {
         DetectionResultItem(
             name = "Frida Detection",
             description = "Detects Frida instrumentation framework",
             result = DetectionResult.Complete(Result.FOUND),
             details = mapOf(
-                "frida-server" to true,
-                "frida ports" to false,
-                "frida libraries" to true
+                "port_detection" to true,
+                "memory_maps_detection" to false,
+                "library_detection" to true
             ),
+            category = "frida",
+            isExpanded = true
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DetectionResultItemXposedPreview() {
+    MaterialTheme {
+        DetectionResultItem(
+            name = "Xposed Detection",
+            description = "Detects Xposed/LSPosed framework",
+            result = DetectionResult.Complete(Result.NOT_FOUND),
+            details = mapOf(
+                "stack_trace_detection" to false,
+                "package_detection" to false,
+                "zygisk_detection" to false
+            ),
+            category = "xposed",
+            isExpanded = true
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DetectionResultItemNativeHookPreview() {
+    MaterialTheme {
+        DetectionResultItem(
+            name = "Native Hook Detection",
+            description = "Detects native code hooking",
+            result = DetectionResult.Complete(Result.NOT_FOUND),
+            details = mapOf(
+                "inline_hook_detection" to false,
+                "got_hook_detection" to false,
+                "plt_hook_detection" to false
+            ),
+            category = "native_hook",
             isExpanded = true
         )
     }

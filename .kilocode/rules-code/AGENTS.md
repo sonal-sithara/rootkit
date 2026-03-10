@@ -21,7 +21,3 @@ All public detection results MUST be encrypted before returning:
 ```kotlin
 return EncryptionService.encryptWithBase64Key(result.name)
 ```
-
-## Activity-Dependent Features
-
-Overlay detection requires Activity context. Always call `rootKit.updateActivity(activity)` before using overlay methods.

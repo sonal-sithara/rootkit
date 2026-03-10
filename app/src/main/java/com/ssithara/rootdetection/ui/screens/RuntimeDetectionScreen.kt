@@ -108,6 +108,7 @@ fun RuntimeDetectionScreen(
                 description = "Detects Frida instrumentation framework",
                 result = runtimeState.fridaDetection,
                 details = fridaDetails ?: getDefaultFridaDetails(),
+                category = "frida",
                 isExpanded = expandedFrida,
                 onExpandToggle = {
                     expandedFrida = !expandedFrida
@@ -122,6 +123,7 @@ fun RuntimeDetectionScreen(
                 description = "Detects Xposed/LSPosed framework",
                 result = runtimeState.xposedDetection,
                 details = xposedDetails ?: getDefaultXposedDetails(),
+                category = "xposed",
                 isExpanded = expandedXposed,
                 onExpandToggle = {
                     expandedXposed = !expandedXposed
@@ -136,6 +138,7 @@ fun RuntimeDetectionScreen(
                 description = "Detects PLT/GOT hooks and inline hooks",
                 result = runtimeState.nativeHookDetection,
                 details = hookDetails ?: getDefaultNativeHookDetails(),
+                category = "native_hook",
                 isExpanded = expandedNativeHook,
                 onExpandToggle = {
                     expandedNativeHook = !expandedNativeHook
@@ -150,6 +153,7 @@ fun RuntimeDetectionScreen(
                 description = "Detects memory modifications and code injection",
                 result = runtimeState.memoryTamperingDetection,
                 details = memoryDetails ?: getDefaultMemoryDetails(),
+                category = "memory_tampering",
                 isExpanded = expandedMemory,
                 onExpandToggle = {
                     expandedMemory = !expandedMemory
@@ -167,31 +171,41 @@ fun RuntimeDetectionScreen(
 
 // Default detail structures for preview purposes
 private fun getDefaultFridaDetails() = mapOf(
-    "frida-server process" to false,
-    "frida ports (27042)" to false,
-    "frida libraries" to false,
-    "frida threads" to false
+    "port_detection" to false,
+    "memory_maps_detection" to false,
+    "thread_detection" to false,
+    "library_detection" to false,
+    "file_descriptor_detection" to false,
+    "env_var_detection" to false
 )
 
 private fun getDefaultXposedDetails() = mapOf(
-    "XposedInstaller package" to false,
-    "XposedBridge class" to false,
-    "LSPosed manager" to false,
-    "native hook detection" to false
+    "stack_trace_detection" to false,
+    "package_detection" to false,
+    "loaded_classes_detection" to false,
+    "memory_maps_detection" to false,
+    "library_detection" to false,
+    "zygote_detection" to false,
+    "riru_detection" to false,
+    "zygisk_detection" to false,
+    "hook_memory_detection" to false
 )
 
 private fun getDefaultNativeHookDetails() = mapOf(
-    "PLT/GOT hooks" to false,
-    "inline hooks" to false,
-    "syscall table hooks" to false,
-    "exception handlers" to false
+    "inline_hook_detection" to false,
+    "got_hook_detection" to false,
+    "plt_hook_detection" to false,
+    "hook_framework_detection" to false,
+    "modified_function_pointer_detection" to false
 )
 
 private fun getDefaultMemoryDetails() = mapOf(
-    "code section integrity" to false,
-    "data section integrity" to false,
-    "/proc/self/maps" to false,
-    "loaded libraries" to false
+    "suspicious_regions_detection" to false,
+    "anonymous_exec_memory_detection" to false,
+    "code_integrity_detection" to false,
+    "unusual_permissions_detection" to false,
+    "code_caves_detection" to false,
+    "modified_base_address_detection" to false
 )
 
 @Composable
@@ -260,10 +274,10 @@ fun RuntimeDetectionScreenInsecurePreview() {
                 fridaDetection = DetectionResult.Complete(
                     result = Result.FOUND,
                     details = mapOf(
-                        "frida-server process" to true,
-                        "frida ports (27042)" to true,
-                        "frida libraries" to false,
-                        "frida threads" to false
+                        "port_detection" to true,
+                        "memory_maps_detection" to true,
+                        "library_detection" to false,
+                        "thread_detection" to false
                     )
                 ),
                 xposedDetection = DetectionResult.Complete(Result.NOT_FOUND),

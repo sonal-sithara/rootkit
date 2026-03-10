@@ -96,8 +96,7 @@ data class RuntimeDetectionState(
 data class EnvironmentDetectionState(
     val isScanning: Boolean = false,
     val emulatorDetection: DetectionResult = DetectionResult.Idle,
-    val debuggerDetection: DetectionResult = DetectionResult.Idle,
-    val overlayDetection: DetectionResult = DetectionResult.Idle
+    val debuggerDetection: DetectionResult = DetectionResult.Idle
 ) {
     /**
      * Calculate the number of checks that have been completed
@@ -106,7 +105,6 @@ data class EnvironmentDetectionState(
         var count = 0
         if (emulatorDetection is DetectionResult.Complete) count++
         if (debuggerDetection is DetectionResult.Complete) count++
-        if (overlayDetection is DetectionResult.Complete) count++
         return count
     }
     
@@ -117,14 +115,13 @@ data class EnvironmentDetectionState(
         var count = 0
         if (emulatorDetection is DetectionResult.Complete && emulatorDetection.result == Result.FOUND) count++
         if (debuggerDetection is DetectionResult.Complete && debuggerDetection.result == Result.FOUND) count++
-        if (overlayDetection is DetectionResult.Complete && overlayDetection.result == Result.FOUND) count++
         return count
     }
     
     /**
      * Total number of checks in this category
      */
-    val totalChecks: Int = 3
+    val totalChecks: Int = 2
 }
 
 /**
@@ -152,8 +149,7 @@ enum class RootCheckType {
  */
 enum class EnvironmentCheckType {
     EMULATOR,
-    DEBUGGER,
-    OVERLAY
+    DEBUGGER
 }
 
 /**

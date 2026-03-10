@@ -401,8 +401,7 @@ data class RuntimeDetectionState(
 data class EnvironmentDetectionState(
     val isScanning: Boolean = false,
     val emulatorDetection: DetectionResult = DetectionResult.Idle,
-    val debuggerDetection: DetectionResult = DetectionResult.Idle,
-    val overlayDetection: DetectionResult = DetectionResult.Idle
+    val debuggerDetection: DetectionResult = DetectionResult.Idle
 )
 
 // Individual detection result
@@ -844,13 +843,6 @@ val SecurityTypography = Typography(
 │ │  ▶ Debugger Detection                           ✓ PASS    │ │
 │ │     ─────────────────────────────────────────────────────  │ │
 │ │     Detects if a debugger is attached to the app.          │ │
-│ └─────────────────────────────────────────────────────────────┘ │
-│                                                                 │
-│ ┌─────────────────────────────────────────────────────────────┐ │
-│ │  ▶ Overlay Detection                            ✓ PASS    │ │
-│ │     ─────────────────────────────────────────────────────  │ │
-│ │     Detects screen overlay attacks from malicious          │ │
-│ │     apps. Requires Activity context.                        │ │
 │ └─────────────────────────────────────────────────────────────┘ │
 │                                                                 │
 ├─────────────────────────────────────────────────────────────────┤

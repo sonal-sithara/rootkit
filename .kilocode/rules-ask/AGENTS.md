@@ -2,7 +2,7 @@
 
 ## Module Architecture
 
-- `:rootkit` - Security detection library (root, emulator, debugger, Magisk, overlay)
+- `:rootkit` - Security detection library (root, emulator, debugger, Magisk)
 - `:app` - Demo application showing library usage with Jetpack Compose UI
 
 ## Key Detection Capabilities
@@ -14,7 +14,6 @@
 | Magisk Native | [`MagiskDetection`](rootkit/src/main/java/com/ssithara/rootkit/MagiskDetection.kt)            | Part of `isRootedDevice()` |
 | Emulator      | [`EmulatorDetection`](rootkit/src/main/java/com/ssithara/rootkit/EmulatorDetection.kt)        | `isEmulatorDevice()`       |
 | Debugger      | [`DebuggerDetection`](rootkit/src/main/java/com/ssithara/rootkit/DebuggerDetection.kt)        | `isDebuggerDetected()`     |
-| Overlay       | [`OverlayDetection`](rootkit/src/main/java/com/ssithara/rootkit/OverlayDetection.kt)          | `detectOverlay()`          |
 
 ## Library Publication
 

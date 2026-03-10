@@ -34,8 +34,7 @@ com.ssithara.rootkit/
 │   │   └── MemoryTamperingDetection.kt
 │   └── environment/              # Environment detections
 │       ├── EmulatorDetection.kt
-│       ├── DebuggerDetection.kt
-│       └── OverlayDetection.kt
+│       └── DebuggerDetection.kt
 └── internal/                     # Internal utilities (not part of public API)
     ├── util/
     │   ├── ShellEx.kt
@@ -49,7 +48,7 @@ com.ssithara.rootkit/
 - **`core/`** - Core infrastructure classes including the abstract detector base class, result enum, and encryption service
 - **`detection/root/`** - Root and Magisk detection implementations
 - **`detection/runtime/`** - Runtime tampering detections (Frida, Xposed, native hooks, memory tampering)
-- **`detection/environment/`** - Environment checks (emulator, debugger, overlay)
+- **`detection/environment/`** - Environment checks (emulator, debugger)
 - **`internal/`** - Internal utilities and DTOs (not part of public API)
 
 ## Build Commands
@@ -75,10 +74,6 @@ All detection classes extend [`DetectorResult`](rootkit/src/main/java/com/ssitha
 ### Result Encryption
 
 All detection results are encrypted with AES-GCM via [`EncryptionService.encryptWithBase64Key()`](rootkit/src/main/java/com/ssithara/rootkit/core/EncryptionService.kt) before returning. App module decrypts for display.
-
-### Activity Context for Overlay Detection
-
-[`RootKit.updateActivity()`](rootkit/src/main/java/com/ssithara/rootkit/RootKit.kt) must be called with Activity context for overlay detection to work (secure flags require window access).
 
 ## NDK Configuration
 

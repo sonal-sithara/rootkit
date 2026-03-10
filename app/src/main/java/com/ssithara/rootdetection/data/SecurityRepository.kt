@@ -1,6 +1,5 @@
 package com.ssithara.rootdetection.data
 
-import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.ssithara.rootdetection.service.EncryptionService
@@ -34,28 +33,6 @@ class SecurityRepository(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize RootKit", e)
         }
-    }
-
-    /**
-     * Update the activity reference for overlay detection.
-     * Required for overlay detection to work properly.
-     */
-    fun updateActivity(activity: Activity?) {
-        rootKit.updateActivity(activity)
-    }
-
-    /**
-     * Set secure flags for overlay detection.
-     */
-    fun setSecureFlags() {
-        rootKit.setSecureFlags()
-    }
-
-    /**
-     * Initialize overlay detection.
-     */
-    fun detectOverlay() {
-        rootKit.detectOverlay()
     }
 
     /**
@@ -99,7 +76,8 @@ class SecurityRepository(private val context: Context) {
         try {
             val encrypted = rootKit.isDebuggerDetected()
             val result = processDetectionResult(encrypted)
-            DetectionResult.Complete(result = result)
+            val details = getDebuggerDetails()
+            DetectionResult.Complete(result = result, details = details)
         } catch (e: Exception) {
             Log.e(TAG, "Debugger check failed", e)
             DetectionResult.Complete(result = Result.NOT_FOUND)
@@ -113,7 +91,8 @@ class SecurityRepository(private val context: Context) {
         try {
             val encrypted = rootKit.isEmulatorDevice()
             val result = processDetectionResult(encrypted)
-            DetectionResult.Complete(result = result)
+            val details = getEmulatorDetails()
+            DetectionResult.Complete(result = result, details = details)
         } catch (e: Exception) {
             Log.e(TAG, "Emulator check failed", e)
             DetectionResult.Complete(result = Result.NOT_FOUND)
@@ -239,7 +218,7 @@ class SecurityRepository(private val context: Context) {
     private fun getNativeHookDetails(): Map<String, Boolean>? {
         return try {
             val details = rootKit.getRuntimeTamperingDetails()
-            details["nativeHook"]
+            details["native_hooks"]
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get native hook details", e)
             null
@@ -252,9 +231,33 @@ class SecurityRepository(private val context: Context) {
     private fun getMemoryTamperingDetails(): Map<String, Boolean>? {
         return try {
             val details = rootKit.getRuntimeTamperingDetails()
-            details["memoryTampering"]
+            details["memory_tampering"]
         } catch (e: Exception) {
             Log.e(TAG, "Failed to get memory tampering details", e)
+            null
+        }
+    }
+
+    /**
+     * Get emulator detection sub-check details.
+     */
+    private fun getEmulatorDetails(): Map<String, Boolean>? {
+        return try {
+            rootKit.getEmulatorDetails()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get emulator details", e)
+            null
+        }
+    }
+
+    /**
+     * Get debugger detection sub-check details.
+     */
+    private fun getDebuggerDetails(): Map<String, Boolean>? {
+        return try {
+            rootKit.getDebuggerDetails()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get debugger details", e)
             null
         }
     }
@@ -291,11 +294,6 @@ class SecurityRepository(private val context: Context) {
         return when (checkType) {
             EnvironmentCheckType.EMULATOR -> checkEmulator()
             EnvironmentCheckType.DEBUGGER -> checkDebugger()
-            EnvironmentCheckType.OVERLAY -> {
-                // Overlay detection requires Activity context and is callback-based
-                // Return a simple result for now
-                DetectionResult.Complete(result = Result.NOT_FOUND)
-            }
         }
     }
 
@@ -327,7 +325,6 @@ class SecurityRepository(private val context: Context) {
         return listOf(
             checkEmulator(),
             checkDebugger()
-            // Overlay detection is handled separately due to Activity requirement
         )
     }
 }

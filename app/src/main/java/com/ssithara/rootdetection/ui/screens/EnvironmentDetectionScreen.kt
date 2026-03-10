@@ -33,12 +33,12 @@ import com.ssithara.rootdetection.ui.theme.EnvironmentCategoryBlue
 import com.ssithara.rootkit.core.Result
 
 /**
- * Screen displaying environment detection results including Emulator, Debugger,
- * and Overlay detections.
+ * Screen displaying environment detection results including Emulator and Debugger detections.
  *
  * @param environmentState The current environment detection state
  * @param onRunAllChecks Callback when "Run All Checks" button is clicked
  * @param onRunIndividualCheck Callback when an individual check's run button is clicked
+ * @param onExpandCheck Callback when a check is expanded (for future use, e.g., tracking expanded state)
  * @param modifier Optional modifier
  */
 @Composable
@@ -46,6 +46,7 @@ fun EnvironmentDetectionScreen(
     environmentState: EnvironmentDetectionState,
     onRunAllChecks: () -> Unit,
     onRunIndividualCheck: (EnvironmentCheckType) -> Unit,
+    onExpandCheck: (EnvironmentCheckType) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -53,7 +54,6 @@ fun EnvironmentDetectionScreen(
     // Track expanded states for each check
     var expandedEmulator by remember { mutableStateOf(false) }
     var expandedDebugger by remember { mutableStateOf(false) }
-    var expandedOverlay by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -106,9 +106,10 @@ fun EnvironmentDetectionScreen(
                 result = environmentState.emulatorDetection,
                 details = emulatorDetails ?: getDefaultEmulatorDetails(),
                 isExpanded = expandedEmulator,
+                category = "emulator",
                 onExpandToggle = {
                     expandedEmulator = !expandedEmulator
-                    onRunIndividualCheck(EnvironmentCheckType.EMULATOR)
+                    onExpandCheck(EnvironmentCheckType.EMULATOR)
                 }
             )
 
@@ -120,23 +121,10 @@ fun EnvironmentDetectionScreen(
                 result = environmentState.debuggerDetection,
                 details = debuggerDetails ?: getDefaultDebuggerDetails(),
                 isExpanded = expandedDebugger,
+                category = "debugger",
                 onExpandToggle = {
                     expandedDebugger = !expandedDebugger
-                    onRunIndividualCheck(EnvironmentCheckType.DEBUGGER)
-                }
-            )
-
-            // Overlay Detection
-            val overlayDetails = (environmentState.overlayDetection as? DetectionResult.Complete)?.details
-            DetectionResultItem(
-                name = "Overlay Detection",
-                description = "Detects if screen overlay attacks are possible",
-                result = environmentState.overlayDetection,
-                details = overlayDetails ?: getDefaultOverlayDetails(),
-                isExpanded = expandedOverlay,
-                onExpandToggle = {
-                    expandedOverlay = !expandedOverlay
-                    onRunIndividualCheck(EnvironmentCheckType.OVERLAY)
+                    onExpandCheck(EnvironmentCheckType.DEBUGGER)
                 }
             )
         }
@@ -150,24 +138,13 @@ fun EnvironmentDetectionScreen(
 
 // Default detail structures for preview purposes
 private fun getDefaultEmulatorDetails() = mapOf(
-    "device model" to false,
-    "build properties" to false,
-    "hardware sensors" to false,
-    "network configuration" to false,
-    "telephony info" to false
+    "device_model_check" to false,
+    "emulator_files_check" to false
 )
 
 private fun getDefaultDebuggerDetails() = mapOf(
-    "debugger connected" to false,
-    "debuggable flag" to false,
-    "ptrace detection" to false,
-    "TracerPid check" to false
-)
-
-private fun getDefaultOverlayDetails() = mapOf(
-    "screen overlays" to false,
-    "window overlays" to false,
-    "system alert windows" to false
+    "adb_enabled_check" to false,
+    "frida_detection_check" to false
 )
 
 @Composable
@@ -186,9 +163,8 @@ private fun EnvironmentDetectionInfoCard() {
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Environment detection identifies if your app is running in an unsafe environment. " +
-                    "This includes emulators (often used for testing and reverse engineering), " +
-                    "attached debuggers (which can be used to analyze and modify app behavior), " +
-                    "and screen overlays (which can be used for tapjacking attacks to steal credentials).",
+                    "This includes emulators (often used for testing and reverse engineering) " +
+                    "and attached debuggers (which can be used to analyze and modify app behavior).",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -210,14 +186,11 @@ fun EnvironmentDetectionScreenSecurePreview() {
                 debuggerDetection = DetectionResult.Complete(
                     result = Result.NOT_FOUND,
                     details = getDefaultDebuggerDetails()
-                ),
-                overlayDetection = DetectionResult.Complete(
-                    result = Result.NOT_FOUND,
-                    details = getDefaultOverlayDetails()
                 )
             ),
             onRunAllChecks = {},
-            onRunIndividualCheck = {}
+            onRunIndividualCheck = {},
+            onExpandCheck = {}
         )
     }
 }
@@ -232,18 +205,15 @@ fun EnvironmentDetectionScreenInsecurePreview() {
                 emulatorDetection = DetectionResult.Complete(
                     result = Result.FOUND,
                     details = mapOf(
-                        "device model" to true,
-                        "build properties" to true,
-                        "hardware sensors" to true,
-                        "network configuration" to false,
-                        "telephony info" to true
+                        "device_model_check" to true,
+                        "emulator_files_check" to true
                     )
                 ),
-                debuggerDetection = DetectionResult.Complete(Result.NOT_FOUND),
-                overlayDetection = DetectionResult.Complete(Result.NOT_FOUND)
+                debuggerDetection = DetectionResult.Complete(Result.NOT_FOUND)
             ),
             onRunAllChecks = {},
-            onRunIndividualCheck = {}
+            onRunIndividualCheck = {},
+            onExpandCheck = {}
         )
     }
 }
@@ -255,7 +225,8 @@ fun EnvironmentDetectionScreenInitialPreview() {
         EnvironmentDetectionScreen(
             environmentState = EnvironmentDetectionState(),
             onRunAllChecks = {},
-            onRunIndividualCheck = {}
+            onRunIndividualCheck = {},
+            onExpandCheck = {}
         )
     }
 }
@@ -268,11 +239,11 @@ fun EnvironmentDetectionScreenScanningPreview() {
             environmentState = EnvironmentDetectionState(
                 isScanning = true,
                 emulatorDetection = DetectionResult.Scanning,
-                debuggerDetection = DetectionResult.Idle,
-                overlayDetection = DetectionResult.Idle
+                debuggerDetection = DetectionResult.Idle
             ),
             onRunAllChecks = {},
-            onRunIndividualCheck = {}
+            onRunIndividualCheck = {},
+            onExpandCheck = {}
         )
     }
 }

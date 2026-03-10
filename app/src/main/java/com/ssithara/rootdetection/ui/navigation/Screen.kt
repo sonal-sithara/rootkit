@@ -47,7 +47,7 @@ sealed class Screen(
     )
 
     /**
-     * Environment detection screen showing emulator, debugger, and overlay detection results.
+     * Environment detection screen showing emulator and debugger detection results.
      */
     data object Environment : Screen(
         route = ROUTE_ENVIRONMENT,

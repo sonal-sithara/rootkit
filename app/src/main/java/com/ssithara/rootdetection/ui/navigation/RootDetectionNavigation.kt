@@ -44,6 +44,7 @@ import com.ssithara.rootdetection.ui.theme.RuntimeCategoryOrange
  * @param onRunRootCheck Callback when individual root check is requested
  * @param onRunRuntimeCheck Callback when individual runtime check is requested
  * @param onRunEnvironmentCheck Callback when individual environment check is requested
+ * @param onExpandEnvironmentCheck Callback when environment check is expanded
  * @param modifier Optional modifier
  */
 @Composable
@@ -53,6 +54,7 @@ fun RootDetectionNavigation(
     onRunRootCheck: (RootCheckType) -> Unit,
     onRunRuntimeCheck: (RuntimeCheckType) -> Unit,
     onRunEnvironmentCheck: (EnvironmentCheckType) -> Unit,
+    onExpandEnvironmentCheck: (EnvironmentCheckType) -> Unit,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
@@ -129,7 +131,8 @@ fun RootDetectionNavigation(
                 EnvironmentDetectionScreen(
                     environmentState = securityState.environmentState,
                     onRunAllChecks = onRunFullScan,
-                    onRunIndividualCheck = onRunEnvironmentCheck
+                    onRunIndividualCheck = onRunEnvironmentCheck,
+                    onExpandCheck = onExpandEnvironmentCheck
                 )
             }
         }

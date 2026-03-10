@@ -1,22 +1,16 @@
 package com.ssithara.rootkit
 
-import android.app.Activity
 import android.content.Context
-import android.util.Log
-import com.ssithara.rootkit.core.DetectorResult
 import com.ssithara.rootkit.core.EncryptionService
 import com.ssithara.rootkit.core.Result
 import com.ssithara.rootkit.detection.environment.DebuggerDetection
 import com.ssithara.rootkit.detection.environment.EmulatorDetection
-import com.ssithara.rootkit.detection.environment.OverlayDetection
 import com.ssithara.rootkit.detection.root.MagiskDetection
 import com.ssithara.rootkit.detection.root.MagiskHideDetection
 import com.ssithara.rootkit.detection.root.RootDetection
 import com.ssithara.rootkit.detection.runtime.RuntimeTamperingDetection
 
 class RootKit(private val context: Context) {
-    private var activity: Activity? = null
-    private val overlayDetection by lazy { OverlayDetection() }
     private val magiskHideDetection by lazy { MagiskHideDetection(context) }
     private val magiskDetection by lazy { MagiskDetection(context) }
     private val rootDetection by lazy { RootDetection(context) }
@@ -26,22 +20,6 @@ class RootKit(private val context: Context) {
 
     fun initialize() {
         System.loadLibrary("rootkit")
-    }
-
-    fun setSecureFlags() {
-        (activity ?: context as? Activity)?.let {
-            overlayDetection.setSecureFlags(it)
-        } ?: Log.e("RootKit", "Activity is null. Ensure RootKit has a valid Activity.")
-    }
-
-    fun detectOverlay() {
-        (activity ?: context as? Activity)?.let {
-            overlayDetection.initOverlayDetection(it)
-        } ?: Log.e("RootKit", "Activity is null. Ensure RootKit has a valid Activity.")
-    }
-
-    fun updateActivity(activity: Activity?) {
-        this.activity = activity
     }
 
     fun isRootedDevice(): String {
@@ -135,5 +113,19 @@ class RootKit(private val context: Context) {
      */
     fun getRuntimeTamperingSummary(): RuntimeTamperingDetection.DetectionSummary {
         return runtimeTamperingDetection.getDetectionSummary()
+    }
+
+    /**
+     * Get detailed detection results for emulator checks
+     */
+    fun getEmulatorDetails(): Map<String, Boolean> {
+        return emulatorDetection.getDetectionDetails()
+    }
+
+    /**
+     * Get detailed detection results for debugger checks
+     */
+    fun getDebuggerDetails(): Map<String, Boolean> {
+        return debuggerDetection.getDetectionDetails()
     }
 }

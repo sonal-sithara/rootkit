@@ -245,7 +245,7 @@ fun DetectionCategoryCardScanningPreview() {
             icon = Icons.Default.Devices,
             category = DetectionCategory.ENVIRONMENT,
             completedChecks = 1,
-            totalChecks = 3,
+            totalChecks = 2,
             threatCount = 0,
             isScanning = true,
             onClick = {}

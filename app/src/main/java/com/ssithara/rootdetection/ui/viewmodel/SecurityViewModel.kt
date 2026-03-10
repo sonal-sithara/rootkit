@@ -6,11 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.ssithara.rootdetection.data.SecurityRepository
 import com.ssithara.rootdetection.ui.model.DetectionResult
 import com.ssithara.rootdetection.ui.model.EnvironmentCheckType
-import com.ssithara.rootdetection.ui.model.EnvironmentDetectionState
 import com.ssithara.rootdetection.ui.model.RootCheckType
-import com.ssithara.rootdetection.ui.model.RootDetectionState
 import com.ssithara.rootdetection.ui.model.RuntimeCheckType
-import com.ssithara.rootdetection.ui.model.RuntimeDetectionState
 import com.ssithara.rootdetection.ui.model.SecurityState
 import com.ssithara.rootdetection.ui.model.SecurityStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -138,7 +135,6 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
             // Run all environment checks
             val emulatorResult = repository.checkEmulator()
             val debuggerResult = repository.checkDebugger()
-            // Overlay detection requires Activity context, handled separately
 
             _uiState.update { currentState ->
                 currentState.copy(
@@ -262,9 +258,6 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
                     EnvironmentCheckType.DEBUGGER -> currentState.environmentState.copy(
                         debuggerDetection = DetectionResult.Scanning
                     )
-                    EnvironmentCheckType.OVERLAY -> currentState.environmentState.copy(
-                        overlayDetection = DetectionResult.Scanning
-                    )
                 }
                 currentState.copy(environmentState = updatedEnvState)
             }
@@ -280,9 +273,6 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
                     )
                     EnvironmentCheckType.DEBUGGER -> currentState.environmentState.copy(
                         debuggerDetection = result
-                    )
-                    EnvironmentCheckType.OVERLAY -> currentState.environmentState.copy(
-                        overlayDetection = result
                     )
                 }
                 currentState.copy(environmentState = updatedEnvState)
@@ -307,6 +297,15 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
                 )
             )
         }
+    }
+
+    /**
+     * Toggle expansion of an environment check to show/hide details.
+     * This is for future use if we want to track expanded state in ViewModel.
+     */
+    fun toggleEnvironmentCheckExpansion(checkType: EnvironmentCheckType) {
+        // Just update expansion state, don't re-run the check
+        // This is for future use if we want to track expanded state in ViewModel
     }
 
     /**

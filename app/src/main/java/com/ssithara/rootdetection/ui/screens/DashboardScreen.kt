@@ -122,8 +122,7 @@ fun DashboardScreenSecurePreview() {
                 ),
                 environmentState = EnvironmentDetectionState(
                     emulatorDetection = DetectionResult.Complete(Result.NOT_FOUND),
-                    debuggerDetection = DetectionResult.Complete(Result.NOT_FOUND),
-                    overlayDetection = DetectionResult.Complete(Result.NOT_FOUND)
+                    debuggerDetection = DetectionResult.Complete(Result.NOT_FOUND)
                 )
             ),
             onRunFullScan = {},

@@ -78,4 +78,15 @@ class EmulatorDetection(context: Context) : DetectorResult(context) {
         }
         return isEmulator
     }
+
+    /**
+     * Get detailed detection results for individual emulator checks
+     * @return Map of check names to boolean results (true = emulator detected)
+     */
+    fun getDetectionDetails(): Map<String, Boolean> {
+        return mapOf(
+            "device_model_check" to isEmulator(),
+            "emulator_files_check" to isEmulator2()
+        )
+    }
 }

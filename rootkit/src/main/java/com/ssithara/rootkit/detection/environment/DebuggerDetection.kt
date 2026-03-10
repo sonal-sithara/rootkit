@@ -39,4 +39,31 @@ class DebuggerDetection(context: Context) : DetectorResult(context) {
 
 
     }
+
+    /**
+     * Get detailed detection results for individual debugger checks
+     * @return Map of check names to boolean results (true = issue detected)
+     */
+    fun getDetectionDetails(): Map<String, Boolean> {
+        val isDebuggerDetected = try {
+            Settings.Secure.getInt(
+                context.contentResolver,
+                Settings.Secure.ADB_ENABLED,
+                0
+            ) == 1
+        } catch (e: Exception) {
+            false
+        }
+
+        val isFridaDetected = try {
+            fridaDetection.run() == Result.FOUND
+        } catch (e: Exception) {
+            false
+        }
+
+        return mapOf(
+            "adb_enabled_check" to isDebuggerDetected,
+            "frida_detection_check" to isFridaDetected
+        )
+    }
 }
