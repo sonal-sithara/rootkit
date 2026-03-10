@@ -5,10 +5,10 @@ endef
 
 include $(CLEAR_VARS)
 LOCAL_MODULE           := rootkit
-LOCAL_C_INCLUDES       := $(LOCAL_PATH)/external/linux_syscall_support $(LOCAL_PATH)/src
+LOCAL_C_INCLUDES       := $(LOCAL_PATH)/src
 FILE_LIST              := $(filter %.c %.cpp, $(call walk, $(LOCAL_PATH)/src))
 LOCAL_SRC_FILES        := $(FILE_LIST:$(LOCAL_PATH)/%=%)
-LOCAL_LDLIBS += -llog
+LOCAL_LDLIBS += -llog -ldl
 LOCAL_STATIC_LIBRARIES := xposed_detector
 include $(BUILD_SHARED_LIBRARY)
 

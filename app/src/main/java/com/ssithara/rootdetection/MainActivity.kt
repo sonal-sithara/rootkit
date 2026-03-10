@@ -5,129 +5,76 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.tooling.preview.PreviewScreenSizes
-import androidx.compose.ui.unit.dp
-import com.ssithara.rootdetection.service.EncryptionService
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ssithara.rootdetection.ui.navigation.RootDetectionNavigation
 import com.ssithara.rootdetection.ui.theme.RootDetectionTheme
-import com.ssithara.rootkit.RootKit
+import com.ssithara.rootdetection.ui.viewmodel.SecurityViewModel
 
+/**
+ * Main Activity for the Root Detection demo app.
+ * Sets up the Compose UI with navigation and ViewModel.
+ */
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Load the native library
         System.loadLibrary("rootkit")
+
         enableEdgeToEdge()
+
         setContent {
             RootDetectionTheme {
-                RootDetectionApp()
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    RootDetectionApp()
+                }
             }
         }
     }
 }
 
-@PreviewScreenSizes
+/**
+ * Main composable for the Root Detection app.
+ * Sets up the ViewModel and navigation.
+ */
 @Composable
 fun RootDetectionApp() {
     val context = LocalContext.current
     val activity = context as? Activity
-    val rootKit by lazy { RootKit(context) }
 
-    var checkSecurity by rememberSaveable {
-        mutableStateOf(
-            Triple(
-                "NOT_FOUND",
-                "NOT_FOUND",
-                "NOT_FOUND"
-            )
-        )
-    }
+    // Get the ViewModel
+    val viewModel: SecurityViewModel = viewModel()
 
-    LaunchedEffect(Unit) {
-        rootKit.updateActivity(activity)
-        checkSecurity = checkSecurity(rootKit = rootKit)
-    }
+    // Collect the UI state as Compose state
+    val securityState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
-
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            AppDestinations.entries.forEach {
-                item(
-                    icon = {
-                        Icon(
-                            it.icon,
-                            contentDescription = it.label
-                        )
-                    },
-                    label = { Text(it.label) },
-                    selected = it == currentDestination,
-                    onClick = { currentDestination = it }
-                )
-            }
-        }
-    ) {
-        Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 30.dp)
-        ) { innerPadding ->
-            Column {
-                Text(
-                    text = "Emulator Detection: ${checkSecurity.first}",
-                    modifier = Modifier.padding(innerPadding)
-                )
-                Text(
-                    text = "Debugger Detection: ${checkSecurity.second}",
-                    modifier = Modifier.padding(innerPadding)
-                )
-                Text(
-                    text = "Root Detection: ${checkSecurity.third}",
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
+    // Update activity context for overlay detection
+    LaunchedEffect(activity) {
+        activity?.let {
+            // Activity context is needed for overlay detection
+            // This is handled internally by the repository when needed
         }
     }
-}
 
-fun checkSecurity(rootKit: RootKit): Triple<String, String, String> {
-    val base64Emulator = rootKit.isEmulatorDevice()
-    val base64Debugger = rootKit.isDebuggerDetected()
-    val base64Rooted = rootKit.isRootedDevice()
-
-    val isEmulator = EncryptionService.decryptWithBase64Key(base64Emulator)
-    val isDebugger = EncryptionService.decryptWithBase64Key(base64Debugger)
-    val isRooted = EncryptionService.decryptWithBase64Key(base64Rooted)
-
-    return Triple(isEmulator, isDebugger, isRooted)
-}
-
-enum class AppDestinations(
-    val label: String,
-    val icon: ImageVector,
-) {
-    HOME("Home", Icons.Default.Home),
-    FAVORITES("Favorites", Icons.Default.Favorite),
-    PROFILE("Profile", Icons.Default.AccountBox),
+    // Set up navigation with the security state
+    RootDetectionNavigation(
+        securityState = securityState,
+        onRunFullScan = { viewModel.runFullScan() },
+        onRunRootCheck = { checkType -> viewModel.runRootCheck(checkType) },
+        onRunRuntimeCheck = { checkType -> viewModel.runRuntimeCheck(checkType) },
+        onRunEnvironmentCheck = { checkType -> viewModel.runEnvironmentCheck(checkType) }
+    )
 }
