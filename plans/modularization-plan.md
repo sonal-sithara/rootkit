@@ -20,7 +20,6 @@ com.ssithara.rootkit/
 ├── EncryptionService.kt            # Encryption utility
 ├── MagiskDetection.kt              # Magisk detection (native)
 ├── MagiskHideDetection.kt          # MagiskHide stub detection
-├── OverlayDetection.kt             # Overlay attack detection
 ├── RootDetection.kt                # Root detection (RootBeer)
 ├── RootKit.kt                      # Main facade
 ├── RuntimeTamperingDetection.kt    # Runtime tampering coordinator
@@ -84,7 +83,6 @@ graph TB
         subgraph environment
             ED[EmulatorDetection.kt]
             DD[DebuggerDetection.kt]
-            OD[OverlayDetection.kt]
         end
     end
 
@@ -142,8 +140,7 @@ com.ssithara.rootkit/
 │   │
 │   └── environment/                    # Environment detections
 │       ├── EmulatorDetection.kt        # Emulator detection
-│       ├── DebuggerDetection.kt        # Debugger detection
-│       └── OverlayDetection.kt         # Overlay attack detection
+│       └── DebuggerDetection.kt        # Debugger detection
 │
 └── internal/                           # Internal utilities (not public API)
     ├── util/
@@ -175,7 +172,6 @@ com.ssithara.rootkit/
 | `memory/MemoryTamperingDetection.kt` | `detection/runtime/MemoryTamperingDetection.kt`  | Move from memory/            |
 | `EmulatorDetection.kt`               | `detection/environment/EmulatorDetection.kt`     | Emulator detection           |
 | `DebuggerDetection.kt`               | `detection/environment/DebuggerDetection.kt`     | Debugger detection           |
-| `OverlayDetection.kt`                | `detection/environment/OverlayDetection.kt`      | Overlay detection            |
 | `ShellEx.kt`                         | `internal/util/ShellEx.kt`                       | Internal utility             |
 | `ConstData.kt`                       | `internal/util/ConstData.kt`                     | Internal constants           |
 | `dto/MagiskStubInfoDto.kt`           | `internal/dto/MagiskStubInfoDto.kt`              | Internal DTO                 |
@@ -213,7 +209,6 @@ com.ssithara.rootkit.detection.runtime.NativeHookDetection
 com.ssithara.rootkit.detection.runtime.MemoryTamperingDetection
 com.ssithara.rootkit.detection.environment.EmulatorDetection
 com.ssithara.rootkit.detection.environment.DebuggerDetection
-com.ssithara.rootkit.detection.environment.OverlayDetection
 ```
 
 ### Internal API Surface

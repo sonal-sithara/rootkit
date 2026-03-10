@@ -12,7 +12,6 @@
 
 ```
 RootKit (facade)
-    ├── OverlayDetection (requires Activity)
     ├── MagiskHideDetection (stub package analysis)
     ├── MagiskDetection (native JNI)
     ├── RootDetection (RootBeer + custom checks)

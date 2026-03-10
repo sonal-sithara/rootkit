@@ -15,5 +15,4 @@ If `UnsatisfiedLinkError` occurs:
 
 ## Common Failure Points
 
-- Overlay detection silently fails without Activity context (check `updateActivity()` was called)
 - Magisk stub detection requires `QUERY_ALL_PACKAGES` permission on Android 11+

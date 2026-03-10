@@ -53,7 +53,6 @@ graph TD
 
     E --> E1[EmulatorDetectionCard]
     E --> E2[DebuggerDetectionCard]
-    E --> E3[OverlayDetectionCard]
 ```
 
 ### 1.3 Navigation Destinations
@@ -321,8 +320,7 @@ fun EnvironmentDetectionScreen(
 
 enum class EnvironmentCheckType {
     EMULATOR,
-    DEBUGGER,
-    OVERLAY
+    DEBUGGER
 }
 ```
 
@@ -706,7 +704,7 @@ val SecurityTypography = Typography(
 │                                                                 │
 │ ┌─────────────────────────────────────────────────────────────┐ │
 │ │  📱  Environment                                 ✓ PASS    │ │
-│ │      Emulator, Debugger, Overlay checks                     │ │
+│ │      Emulator, Debugger checks                              │ │
 │ │      ────────────────────────────────────                   │ │
 │ │      3/3 checks passed                                     │ │
 │ └─────────────────────────────────────────────────────────────┘ │
