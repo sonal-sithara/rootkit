@@ -37,10 +37,12 @@ static const char *FRIDA_SIGNATURES[] = {
 };
 
 // Frida thread names
+// Note: "gmain" was intentionally removed — it is a generic GLib main-loop thread
+// name used by Chrome, WebView, and many other non-Frida components, causing
+// frequent false positives.
 static const char *FRIDA_THREADS[] = {
         "frida:rpc",
         "frida:main",
-        "gmain",
         "gum-js-loop",
         "gum-js-engine",
         "pool-frida",

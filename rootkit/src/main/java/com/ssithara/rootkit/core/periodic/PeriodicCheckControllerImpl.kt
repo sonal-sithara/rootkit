@@ -44,7 +44,8 @@ import java.util.concurrent.atomic.AtomicReference
  */
 internal class PeriodicCheckControllerImpl(
     context: Context,
-    private val config: PeriodicCheckConfig
+    private val config: PeriodicCheckConfig,
+    private val encryptionKey: String
 ) : PeriodicCheckController {
 
     // Use application context to prevent activity leaks
@@ -306,19 +307,23 @@ internal class PeriodicCheckControllerImpl(
             PeriodicCheckConfig.DetectionType.FRIDA -> {
                 if (runtimeTamperingDetection.isFridaDetected()) Result.FOUND else Result.NOT_FOUND
             }
+
             PeriodicCheckConfig.DetectionType.XPOSED -> {
                 if (runtimeTamperingDetection.isXposedDetected()) Result.FOUND else Result.NOT_FOUND
             }
+
             PeriodicCheckConfig.DetectionType.MEMORY_TAMPERING -> {
                 if (runtimeTamperingDetection.isMemoryTamperingDetected()) Result.FOUND else Result.NOT_FOUND
             }
+
             PeriodicCheckConfig.DetectionType.NATIVE_HOOK -> {
                 if (runtimeTamperingDetection.isNativeHookDetected()) Result.FOUND else Result.NOT_FOUND
             }
+
             PeriodicCheckConfig.DetectionType.RUNTIME_TAMPERING -> runtimeTamperingDetection.run()
         }
 
-        val encryptedValue = EncryptionService.encryptWithBase64Key(result.name)
+        val encryptedValue = EncryptionService.encryptWithBase64Key(result.name, encryptionKey)
 
         return PeriodicCheckConfig.DetectionResult(
             detectionType = type,

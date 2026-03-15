@@ -1,16 +1,12 @@
 package com.ssithara.rootdetection.service
 
-import java.nio.charset.StandardCharsets
-import java.security.SecureRandom
 import android.util.Base64
+import java.nio.charset.StandardCharsets
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-
 object EncryptionService {
-
-    private const val aseKey: String = "vL5x4Xqj4eS4E8XzV6Jt8Z9FvA4UrcJjx9pI5hHZzHk=";
 
     @Throws(Exception::class)
     private fun decrypt(data: ByteArray, keyBytes: ByteArray): String {
@@ -29,9 +25,19 @@ object EncryptionService {
         return String(plainBytes, StandardCharsets.UTF_8)
     }
 
+    /**
+     * Decrypts a Base64-encoded AES-256-GCM ciphertext.
+     *
+     * The key must match the one returned by [com.ssithara.rootkit.RootKit.getEncryptionKey]
+     * for the RootKit instance that produced the ciphertext.
+     *
+     * @param cipherTextBase64  Base64-encoded ciphertext (IV prepended, NO_WRAP).
+     * @param base64Key         Base64-encoded 32-byte AES key (NO_WRAP).
+     * @return                  The decrypted plaintext string.
+     */
     @Throws(Exception::class)
-    fun decryptWithBase64Key(cipherTextBase64: String): String {
-        val keyBytes: ByteArray = Base64.decode(aseKey, Base64.NO_WRAP)
+    fun decryptWithBase64Key(cipherTextBase64: String, base64Key: String): String {
+        val keyBytes: ByteArray = Base64.decode(base64Key, Base64.NO_WRAP)
         val data: ByteArray = Base64.decode(cipherTextBase64, Base64.NO_WRAP)
         return decrypt(data, keyBytes)
     }

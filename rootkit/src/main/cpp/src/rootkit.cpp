@@ -109,13 +109,14 @@ static inline bool is_mountpaths_detected() {
 
     fseek(fp, 0L, SEEK_SET);
 
-    char *buffer = new(std::nothrow) char[size];
+    char *buffer = new(std::nothrow) char[size + 1];
     if (buffer == nullptr) {
         fclose(fp);
         return false;
     }
 
     size_t read = fread(buffer, 1, size, fp);
+    buffer[read] = '\0';  // null-terminate before strstr
 
     for (int i = 0; i < len; i++) {
         if (strstr(buffer, blacklistedMountPaths[i]) != nullptr) {

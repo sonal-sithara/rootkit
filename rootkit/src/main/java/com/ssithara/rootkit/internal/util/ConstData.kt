@@ -58,8 +58,6 @@ internal class ConstData {
             "/data/adb/.magisk/busybox",
             "/system/xbin/daemonsu",
             "/data/adb/magisk.img",
-            "/data/adb/magisk",
-            "/data/adb/.magisk",
         )
 
         val notWritablePath: Array<String?> = arrayOf<String?>(

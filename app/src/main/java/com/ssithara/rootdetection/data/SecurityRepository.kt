@@ -19,7 +19,7 @@ import kotlinx.coroutines.withContext
 class SecurityRepository(private val context: Context) {
 
     private val rootKit: RootKit = RootKit(context)
-    
+
     companion object {
         private const val TAG = "SecurityRepository"
     }
@@ -40,7 +40,7 @@ class SecurityRepository(private val context: Context) {
      */
     private fun processDetectionResult(encryptedResult: String): Result {
         return try {
-            val decrypted = EncryptionService.decryptWithBase64Key(encryptedResult)
+            val decrypted = EncryptionService.decryptWithBase64Key(encryptedResult, rootKit.getEncryptionKey())
             when (decrypted) {
                 Result.FOUND.name -> Result.FOUND
                 Result.NOT_FOUND.name -> Result.NOT_FOUND
@@ -121,10 +121,10 @@ class SecurityRepository(private val context: Context) {
         try {
             val encrypted = rootKit.isFridaDetected()
             val result = processDetectionResult(encrypted)
-            
+
             // Get detailed sub-checks from runtime tampering details
             val details = getFridaDetails()
-            
+
             DetectionResult.Complete(result = result, details = details)
         } catch (e: Exception) {
             Log.e(TAG, "Frida check failed", e)
@@ -139,10 +139,10 @@ class SecurityRepository(private val context: Context) {
         try {
             val encrypted = rootKit.isXposedDetected()
             val result = processDetectionResult(encrypted)
-            
+
             // Get detailed sub-checks from runtime tampering details
             val details = getXposedDetails()
-            
+
             DetectionResult.Complete(result = result, details = details)
         } catch (e: Exception) {
             Log.e(TAG, "Xposed check failed", e)
@@ -157,10 +157,10 @@ class SecurityRepository(private val context: Context) {
         try {
             val encrypted = rootKit.isNativeHookDetected()
             val result = processDetectionResult(encrypted)
-            
+
             // Get detailed sub-checks from runtime tampering details
             val details = getNativeHookDetails()
-            
+
             DetectionResult.Complete(result = result, details = details)
         } catch (e: Exception) {
             Log.e(TAG, "Native hook check failed", e)
@@ -175,10 +175,10 @@ class SecurityRepository(private val context: Context) {
         try {
             val encrypted = rootKit.isMemoryTamperingDetected()
             val result = processDetectionResult(encrypted)
-            
+
             // Get detailed sub-checks from runtime tampering details
             val details = getMemoryTamperingDetails()
-            
+
             DetectionResult.Complete(result = result, details = details)
         } catch (e: Exception) {
             Log.e(TAG, "Memory tampering check failed", e)

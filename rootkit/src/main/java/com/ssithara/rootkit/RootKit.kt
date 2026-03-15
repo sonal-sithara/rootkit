@@ -1,6 +1,7 @@
 package com.ssithara.rootkit
 
 import android.content.Context
+import android.util.Base64
 import com.ssithara.rootkit.core.EncryptionService
 import com.ssithara.rootkit.core.Result
 import com.ssithara.rootkit.core.periodic.PeriodicCheckConfig
@@ -12,6 +13,7 @@ import com.ssithara.rootkit.detection.root.MagiskDetection
 import com.ssithara.rootkit.detection.root.MagiskHideDetection
 import com.ssithara.rootkit.detection.root.RootDetection
 import com.ssithara.rootkit.detection.runtime.RuntimeTamperingDetection
+import java.security.SecureRandom
 
 /**
  * RootKit - Android Security Detection Library
@@ -26,8 +28,9 @@ import com.ssithara.rootkit.detection.runtime.RuntimeTamperingDetection
  * val rootKit = RootKit(context)
  * rootKit.initialize()
  *
- * // On-demand checks
- * val isRooted = rootKit.isRootedDevice()
+ * // Decrypt results using the session key
+ * val key = rootKit.getEncryptionKey()
+ * val isRooted = rootKit.isRootedDevice() // encrypted — decrypt with key
  * ```
  *
  * With periodic monitoring:
@@ -42,13 +45,43 @@ import com.ssithara.rootkit.detection.runtime.RuntimeTamperingDetection
  * controller.start()
  * ```
  */
-class RootKit(private val context: Context) {
+class RootKit(context: Context) {
+
+    // Always hold the application context to prevent leaking Activity/Fragment references.
+    private val context: Context = context.applicationContext
+
+    /**
+     * Per-instance AES-256-GCM session key generated at construction time.
+     * The key is never stored on disk or embedded in the binary.
+     * Call [getEncryptionKey] to retrieve it for decrypting detection results.
+     */
+    private val sessionKey: String = run {
+        val keyBytes = ByteArray(32)
+        SecureRandom().nextBytes(keyBytes)
+        Base64.encodeToString(keyBytes, Base64.NO_WRAP)
+    }
+
     private val magiskHideDetection by lazy { MagiskHideDetection(context) }
     private val magiskDetection by lazy { MagiskDetection(context) }
     private val rootDetection by lazy { RootDetection(context) }
     private val debuggerDetection by lazy { DebuggerDetection(context) }
     private val emulatorDetection by lazy { EmulatorDetection(context) }
     private val runtimeTamperingDetection by lazy { RuntimeTamperingDetection(context) }
+
+    /**
+     * Returns the Base64-encoded AES-256-GCM session key used to encrypt all
+     * detection results returned by this instance.
+     *
+     * The key is unique per [RootKit] instance and is generated in memory at
+     * construction time — it is never stored in the binary or on disk.
+     *
+     * Use this key with your own AES-GCM decrypt implementation (IV is the first
+     * 12 bytes of the decoded ciphertext, followed by the 16-byte auth tag and
+     * ciphertext from [javax.crypto.Cipher] with "AES/GCM/NoPadding").
+     *
+     * @return Base64-encoded 32-byte AES key (NO_WRAP encoding).
+     */
+    fun getEncryptionKey(): String = sessionKey
 
     /**
      * Initialize the SDK with native library loading only.
@@ -94,7 +127,7 @@ class RootKit(private val context: Context) {
      */
     fun initialize(config: PeriodicCheckConfig): PeriodicCheckController {
         System.loadLibrary("rootkit")
-        return PeriodicCheckControllerImpl(context, config)
+        return PeriodicCheckControllerImpl(context, config, sessionKey)
     }
 
     /**
@@ -133,96 +166,95 @@ class RootKit(private val context: Context) {
         else
             Result.NOT_FOUND
 
-        return EncryptionService.encryptWithBase64Key(isRooted.name)
+        return EncryptionService.encryptWithBase64Key(isRooted.name, sessionKey)
     }
-
 
     fun isDebuggerDetected(): String {
         val result = debuggerDetection.run()
-        return EncryptionService.encryptWithBase64Key(result.name)
+        return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
     fun isEmulatorDevice(): String {
         val result = emulatorDetection.run()
-        return EncryptionService.encryptWithBase64Key(result.name)
+        return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
     /**
-     * Comprehensive runtime tampering detection
-     * Checks for Frida, Xposed, memory tampering, and native hooks
+     * Comprehensive runtime tampering detection.
+     * Checks for Frida, Xposed, memory tampering, and native hooks.
      */
     fun isRuntimeTamperingDetected(): String {
         val result = runtimeTamperingDetection.run()
-        return EncryptionService.encryptWithBase64Key(result.name)
+        return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
     /**
-     * Frida-specific detection
+     * Frida-specific detection.
      */
     fun isFridaDetected(): String {
         val result = if (runtimeTamperingDetection.isFridaDetected())
             Result.FOUND
         else
             Result.NOT_FOUND
-        return EncryptionService.encryptWithBase64Key(result.name)
+        return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
     /**
-     * Xposed/LSPosed-specific detection
+     * Xposed/LSPosed-specific detection.
      */
     fun isXposedDetected(): String {
         val result = if (runtimeTamperingDetection.isXposedDetected())
             Result.FOUND
         else
             Result.NOT_FOUND
-        return EncryptionService.encryptWithBase64Key(result.name)
+        return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
     /**
-     * Memory tampering-specific detection
+     * Memory tampering-specific detection.
      */
     fun isMemoryTamperingDetected(): String {
         val result = if (runtimeTamperingDetection.isMemoryTamperingDetected())
             Result.FOUND
         else
             Result.NOT_FOUND
-        return EncryptionService.encryptWithBase64Key(result.name)
+        return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
     /**
-     * Native hook-specific detection
+     * Native hook-specific detection.
      */
     fun isNativeHookDetected(): String {
         val result = if (runtimeTamperingDetection.isNativeHookDetected())
             Result.FOUND
         else
             Result.NOT_FOUND
-        return EncryptionService.encryptWithBase64Key(result.name)
+        return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
     /**
-     * Get detailed detection results for all runtime tampering checks
+     * Get detailed detection results for all runtime tampering checks.
      */
     fun getRuntimeTamperingDetails(): Map<String, Map<String, Boolean>> {
         return runtimeTamperingDetection.getComprehensiveDetectionDetails()
     }
 
     /**
-     * Get a summary of runtime tampering detections
+     * Get a summary of runtime tampering detections.
      */
     fun getRuntimeTamperingSummary(): RuntimeTamperingDetection.DetectionSummary {
         return runtimeTamperingDetection.getDetectionSummary()
     }
 
     /**
-     * Get detailed detection results for emulator checks
+     * Get detailed detection results for emulator checks.
      */
     fun getEmulatorDetails(): Map<String, Boolean> {
         return emulatorDetection.getDetectionDetails()
     }
 
     /**
-     * Get detailed detection results for debugger checks
+     * Get detailed detection results for debugger checks.
      */
     fun getDebuggerDetails(): Map<String, Boolean> {
         return debuggerDetection.getDetectionDetails()

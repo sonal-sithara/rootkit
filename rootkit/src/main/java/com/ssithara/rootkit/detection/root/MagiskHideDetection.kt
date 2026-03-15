@@ -86,12 +86,17 @@ class MagiskHideDetection(context: Context) : DetectorResult(context) {
                 if (aInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0) return@runCatching
 
                 for (stub in magiskStubs) {
+                    // Application class name is always set by Magisk stubs; if the
+                    // package has no custom Application class it cannot be this stub.
+                    val packageClassName = pInfo.applicationInfo?.className
+                    val classNameMatches = packageClassName != null &&
+                            packageClassName.equals(stub.class_name, ignoreCase = true)
+
                     if ((pInfo.activities?.size == stub.activities) &&
                         (pInfo.services?.size == stub.services) &&
                         (pInfo.receivers?.size == stub.broadcast_receivers) &&
-                        (pInfo.providers?.size == stub.content_providers)
-//                        &&
-//                        (pInfo.applicationInfo?.className?.lowercase() == stub.class_name.lowercase())
+                        (pInfo.providers?.size == stub.content_providers) &&
+                        classNameMatches
                     ) {
                         result = Result.FOUND
                         return@runCatching

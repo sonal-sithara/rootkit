@@ -19,15 +19,25 @@ import androidx.lifecycle.ProcessLifecycleOwner
  * background monitoring is required, use [VisibilityConfig.CONTINUE_REDUCED]
  * to continue at a reduced frequency.
  *
- * Usage:
+ * ## Construction
+ *
+ * Use the [create] factory methods or the [withAppVisibilityAwareness] extension
+ * rather than constructing this class directly.  Both take care of calling
+ * [attach] after the instance is fully initialised, which avoids the classic
+ * `this`-escape anti-pattern of registering a lifecycle observer inside an
+ * `init` block before the object is ready.
+ *
  * ```kotlin
  * // Pause checks completely when app goes to background (default)
- * val controller = rootKit.initialize(config)
+ * val visibilityCheck = rootKit.initialize(config)
  *     .withAppVisibilityAwareness()
  *
  * // Continue checks in background but at reduced frequency
- * val controller = rootKit.initialize(config)
- *     .withAppVisibilityAwareness(VisibilityConfig.CONTINUE_REDUCED)
+ * val visibilityCheck = rootKit.initialize(config)
+ *     .withAppVisibilityAwareness(AppVisibilityAwareCheck.VisibilityConfig.CONTINUE_REDUCED)
+ *
+ * // Stop visibility-aware behaviour later
+ * visibilityCheck.detach()
  * ```
  */
 class AppVisibilityAwareCheck(
@@ -51,12 +61,12 @@ class AppVisibilityAwareCheck(
     ) {
         companion object {
             /**
-             * Default configuration: Pause checks completely when app goes to background
+             * Default configuration: Pause checks completely when app goes to background.
              */
             val DEFAULT = VisibilityConfig()
 
             /**
-             * Continue checks in background but at reduced frequency (4x slower)
+             * Continue checks in background but at reduced frequency (4x slower).
              */
             val CONTINUE_REDUCED = VisibilityConfig(
                 pauseInBackground = false,
@@ -64,7 +74,7 @@ class AppVisibilityAwareCheck(
             )
 
             /**
-             * Create a custom configuration
+             * Create a custom configuration.
              */
             fun custom(
                 pauseInBackground: Boolean = true,
@@ -78,15 +88,28 @@ class AppVisibilityAwareCheck(
         }
     }
 
-    // Store original interval for reset
-    private var originalIntervalMs: Long = 0L
+    // Stored so attach/detach can be called multiple times safely.
     private var isAttached = false
 
-    init {
-        attach()
-    }
+    // Captured at attach() time so resetInterval() can restore the original value.
+    private var originalIntervalMs: Long = 0L
 
-    private fun attach() {
+    // NO init block — addObserver(this) is intentionally NOT called here.
+    // Registering `this` as an observer inside a constructor is the classic
+    // "this-escape" anti-pattern: the partially-constructed object is handed to
+    // external code (the Lifecycle) before all fields are initialised.  The
+    // factory methods and extension function below call attach() explicitly once
+    // construction is complete, which is the safe approach.
+
+    /**
+     * Registers this instance as a [ProcessLifecycleOwner] observer and starts
+     * responding to foreground/background transitions.
+     *
+     * This method is idempotent — calling it more than once has no effect.
+     * It is called automatically by [create] and [withAppVisibilityAwareness];
+     * you only need to call it manually if you constructed this class directly.
+     */
+    fun attach() {
         if (!isAttached) {
             originalIntervalMs = controller.getInterval()
             ProcessLifecycleOwner.get().lifecycle.addObserver(this)
@@ -95,8 +118,10 @@ class AppVisibilityAwareCheck(
     }
 
     /**
-     * Detach from lifecycle and cleanup.
-     * Call this when you want to stop visibility-aware behavior.
+     * Unregisters this instance from the [ProcessLifecycleOwner] lifecycle.
+     *
+     * After detaching, foreground/background transitions no longer affect the
+     * controller.  Call [attach] to re-enable visibility-aware behaviour.
      */
     fun detach() {
         if (isAttached) {
@@ -106,11 +131,11 @@ class AppVisibilityAwareCheck(
     }
 
     override fun onStart(owner: LifecycleOwner) {
-        // App came to foreground
+        // App came to foreground.
         if (config.resumeOnForeground) {
             controller.resume()
 
-            // Reset to original interval if it was changed
+            // Restore original interval if it was slowed down in the background.
             if (config.backgroundCheckIntervalMultiplier > 0) {
                 controller.resetInterval()
             }
@@ -118,11 +143,11 @@ class AppVisibilityAwareCheck(
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        // App went to background
+        // App went to background.
         if (config.pauseInBackground) {
             controller.pause()
         } else if (config.backgroundCheckIntervalMultiplier > 0) {
-            // Reduce frequency instead of pausing completely
+            // Reduce frequency instead of pausing completely.
             val currentInterval = controller.getInterval()
             val newInterval = (currentInterval * config.backgroundCheckIntervalMultiplier)
                 .coerceAtLeast(config.minBackgroundIntervalMs)
@@ -132,30 +157,55 @@ class AppVisibilityAwareCheck(
 
     companion object {
         /**
-         * Create an app visibility-aware check with default configuration
+         * Creates an [AppVisibilityAwareCheck] with the [VisibilityConfig.DEFAULT]
+         * configuration and immediately attaches it to the process lifecycle.
+         *
+         * Prefer this factory over the constructor to avoid the `this`-escape
+         * anti-pattern.
          */
         fun create(controller: PeriodicCheckController): AppVisibilityAwareCheck {
             return AppVisibilityAwareCheck(controller, VisibilityConfig.DEFAULT)
+                .also { it.attach() }
         }
 
         /**
-         * Create an app visibility-aware check with custom configuration
+         * Creates an [AppVisibilityAwareCheck] with a custom [config] and
+         * immediately attaches it to the process lifecycle.
+         *
+         * Prefer this factory over the constructor to avoid the `this`-escape
+         * anti-pattern.
          */
         fun create(
             controller: PeriodicCheckController,
             config: VisibilityConfig
         ): AppVisibilityAwareCheck {
             return AppVisibilityAwareCheck(controller, config)
+                .also { it.attach() }
         }
     }
 }
 
 /**
- * Extension function to add app visibility awareness to a controller
+ * Attaches app-visibility awareness to this [PeriodicCheckController] and
+ * returns the [AppVisibilityAwareCheck] wrapper so the caller can [AppVisibilityAwareCheck.detach]
+ * it later if needed.
+ *
+ * The returned wrapper is registered with [ProcessLifecycleOwner], which holds a
+ * strong reference to it for the lifetime of the process lifecycle.  The caller
+ * does **not** need to retain the return value merely to keep it alive, but
+ * should store it if they want the ability to call [AppVisibilityAwareCheck.detach].
+ *
+ * ```kotlin
+ * val visibilityCheck = rootKit.initialize(config)
+ *     .withAppVisibilityAwareness()
+ * visibilityCheck.controller.start()
+ *
+ * // Later, to stop visibility-aware behaviour:
+ * visibilityCheck.detach()
+ * ```
  */
 fun PeriodicCheckController.withAppVisibilityAwareness(
     config: AppVisibilityAwareCheck.VisibilityConfig = AppVisibilityAwareCheck.VisibilityConfig.DEFAULT
-): PeriodicCheckController {
-    AppVisibilityAwareCheck(this, config)
-    return this
+): AppVisibilityAwareCheck {
+    return AppVisibilityAwareCheck.create(this, config)
 }

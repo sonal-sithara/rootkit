@@ -7,6 +7,7 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStreamReader
+import java.io.IOException
 
 class MagiskDetection(context: Context) : DetectorResult(context) {
     private external fun isMagiskPresentNative(): Boolean
@@ -14,8 +15,9 @@ class MagiskDetection(context: Context) : DetectorResult(context) {
     override fun run(): Result {
         var isMagiskPresent = Result.NOT_FOUND
 
+        // Kotlin: scan /proc/self/mounts for blacklisted paths
         try {
-            val blackListedMountPaths = arrayOf<String?>(
+            val blackListedMountPaths = arrayOf(
                 "magisk", "core/mirror", "core/img",
                 "/su/bin/",
                 "/system/bin/failsafe/",
@@ -24,33 +26,37 @@ class MagiskDetection(context: Context) : DetectorResult(context) {
             )
 
             val file = File("/proc/self/mounts")
-            val fis = FileInputStream(file)
-            val reader = BufferedReader(InputStreamReader(fis))
-            var str: String?
-            var count = 0
-            while ((reader.readLine().also { str = it }) != null && (count == 0)) {
-                for (path in blackListedMountPaths) {
-                    if (str!!.contains(path!!)) {
-                        count++
-                        break
+            FileInputStream(file).use { fis ->
+                BufferedReader(InputStreamReader(fis)).use { reader ->
+                    var str: String?
+                    while (reader.readLine().also { str = it } != null) {
+                        for (path in blackListedMountPaths) {
+                            if (str!!.contains(path)) {
+                                isMagiskPresent = Result.FOUND
+                                break
+                            }
+                        }
+                        if (isMagiskPresent == Result.FOUND) break
                     }
                 }
             }
-            reader.close()
-            fis.close()
+        } catch (e: IOException) {
+            // /proc/self/mounts unreadable — continue to native check
+        } catch (e: Exception) {
+            // ignore
+        }
 
-            if (count > 0) {
+        // Native: run independently regardless of the Kotlin result above.
+        // Magisk may hide itself from /proc/self/mounts, so these two checks
+        // must be orthogonal.
+        try {
+            if (isMagiskPresentNative()) {
                 isMagiskPresent = Result.FOUND
             }
-            if (count > 0) {
-                val isMasiskPresentNative = isMagiskPresentNative()
-                if (isMasiskPresentNative) {
-                    isMagiskPresent = Result.FOUND
-                }
-
-            }
         } catch (e: Exception) {
+            // ignore — native library may not be loaded yet
         }
+
         return isMagiskPresent
     }
 }

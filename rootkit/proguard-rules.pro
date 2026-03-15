@@ -1,18 +1,55 @@
-#-keepclasseswithmembernames class * { native <methods>; }
--keepclassmembernames class com.ssithara.rootkit.HookDetection$Companion {
-    native boolean checkFridaByPort();
+# ============================================================
+# RootKit Library — ProGuard / R8 rules
+# Applied when isMinifyEnabled = true for this library module.
+# ============================================================
+
+# --- Public API -----------------------------------------------------------------
+
+# Keep the top-level facade so consumers can reference it by name
+-keep public class com.ssithara.rootkit.RootKit { *; }
+
+# Keep all public core types (Result, DetectorResult, EncryptionService, AppZygote)
+-keep public class com.ssithara.rootkit.core.Result { *; }
+-keep public class com.ssithara.rootkit.core.DetectorResult { *; }
+-keep public class com.ssithara.rootkit.core.AppZygote { *; }
+
+# Keep the entire periodic-check public API (config, controller, callbacks, DTOs)
+-keep public class com.ssithara.rootkit.core.periodic.** { *; }
+
+# --- JNI — class names must survive obfuscation (name-mangling depends on them) -
+
+-keepclasseswithmembernames class com.ssithara.rootkit.detection.root.MagiskDetection {
+    native <methods>;
 }
 
--keepclassmembernames class com.ssithara.rootkit.MagiskDetection {
-    native boolean isMagiskPresentNative();
+-keepclasseswithmembernames class com.ssithara.rootkit.detection.runtime.FridaDetection {
+    native <methods>;
 }
 
-# Keep minimum metadata needed by runtime libraries you actually use.
--keep class kotlin.Metadata { *; }      # keep if you use reflection heavy kotlin libs (optional)
+-keepclasseswithmembernames class com.ssithara.rootkit.detection.runtime.XposedDetection {
+    native <methods>;
+}
 
-# Remove annotations and debug info we don't need
+-keepclasseswithmembernames class com.ssithara.rootkit.detection.runtime.NativeHookDetection {
+    native <methods>;
+}
+
+-keepclasseswithmembernames class com.ssithara.rootkit.detection.runtime.MemoryTamperingDetection {
+    native <methods>;
+}
+
+# --- Kotlin metadata & reflection -----------------------------------------------
+
+-keepattributes *Annotation*
 -keepattributes Signature
--dontwarn **
+-keepattributes Exceptions
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
 
-# Strip line numbers & sourcefile (already above)
--keepattributes !SourceFile, !LineNumberTable
+# Keep Kotlin metadata so reflection-heavy Kotlin libraries work correctly
+-keep class kotlin.Metadata { *; }
+
+# --- Miscellaneous --------------------------------------------------------------
+
+# Suppress warnings for dependencies we don't control
+-dontwarn **

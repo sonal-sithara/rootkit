@@ -156,7 +156,7 @@ class RootDetection(context: Context) : DetectorResult(context) {
         var result = false
         val lines: Array<String>? = commander("mount")
 
-        for (line in lines!!) {
+        for (line in lines ?: return false) {
             val args = line.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
             if (args.size < 4) {
                 continue

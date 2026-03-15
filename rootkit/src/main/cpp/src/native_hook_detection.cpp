@@ -20,10 +20,57 @@
 #include <elf.h>
 #include <dlfcn.h>
 #include <sys/mman.h>
+#include <vector>
+
+/**
+ * @brief Represents a single parsed line from /proc/self/maps.
+ *
+ * Storing the full original line alongside start/end lets callers reuse the
+ * same strstr checks that the original per-entry code used, without reopening
+ * the file on every iteration.
+ */
+struct MapEntry {
+    uintptr_t start;
+    uintptr_t end;
+    char line[1024];
+};
+
+/**
+ * @brief Parse /proc/self/maps into a vector of MapEntry values.
+ *
+ * Opens the file exactly once and returns all entries so that callers can do
+ * O(n) address lookups without repeated file I/O inside hot loops.
+ *
+ * @return Vector of parsed map entries (empty if the file cannot be opened).
+ */
+static std::vector<MapEntry> parse_proc_maps() {
+    std::vector<MapEntry> entries;
+
+    FILE *fp = fopen("/proc/self/maps", "r");
+    if (fp == nullptr) {
+        return entries;
+    }
+
+    char buf[1024];
+    while (fgets(buf, sizeof(buf), fp) != nullptr) {
+        MapEntry e = {};
+        unsigned long start_ul, end_ul;
+        if (sscanf(buf, "%lx-%lx", &start_ul, &end_ul) == 2) {
+            e.start = (uintptr_t) start_ul;
+            e.end   = (uintptr_t) end_ul;
+            strncpy(e.line, buf, sizeof(e.line) - 1);
+            e.line[sizeof(e.line) - 1] = '\0';
+            entries.push_back(e);
+        }
+    }
+
+    fclose(fp);
+    return entries;
+}
 
 /**
  * @brief Get the base address of a library.
- * 
+ *
  * @param lib_name Name of the library to find
  * @return Base address of the library, or 0 if not found
  */
@@ -275,7 +322,11 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectGOTHooks(J
     if (symtab == nullptr || strtab == nullptr || rela == nullptr) {
         return JNI_FALSE;
     }
-    
+
+    // Parse /proc/self/maps once before the loop so we do not pay the cost of
+    // opening and reading the entire file for every relocation entry.
+    auto maps = parse_proc_maps();
+
     // Check each relocation entry
     for (size_t i = 0; i < rela_count; i++) {
         uint32_t reloc_type = ELF64_R_TYPE(rela[i].r_info);
@@ -301,29 +352,17 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectGOTHooks(J
             uintptr_t addr = (uintptr_t)*got_entry;
             
             if (addr != 0) {
-                // Read /proc/self/maps to verify
-                FILE *fp = fopen("/proc/self/maps", "r");
-                if (fp != nullptr) {
-                    char line[1024];
-                    
-                    while (fgets(line, sizeof(line), fp) != nullptr) {
-                        unsigned long start, end;
-                        if (sscanf(line, "%lx-%lx", &start, &end) == 2) {
-                            if (addr >= start && addr < end) {
-                                // Check if it's in a legitimate library
-                                if (strstr(line, ".so") != nullptr ||
-                                    strstr(line, "/system") != nullptr ||
-                                    strstr(line, "/apex") != nullptr) {
-                                    break;
-                                }
-                                // Address is in mapped region but not a library
-                                fclose(fp);
-                                return JNI_TRUE;
-                            }
+                for (const auto &entry : maps) {
+                    if (addr >= entry.start && addr < entry.end) {
+                        // Check if it's in a legitimate library
+                        if (strstr(entry.line, ".so") != nullptr ||
+                            strstr(entry.line, "/system") != nullptr ||
+                            strstr(entry.line, "/apex") != nullptr) {
+                            break;
                         }
+                        // Address is in mapped region but not a legitimate library
+                        return JNI_TRUE;
                     }
-                    
-                    fclose(fp);
                 }
             }
         }
@@ -375,6 +414,9 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectGOTHooks(J
         return JNI_FALSE;
     }
 
+    // Parse /proc/self/maps once before the loop (same as 64-bit path above).
+    auto maps = parse_proc_maps();
+
     // Check each relocation entry
     for (size_t i = 0; i < rel_count; i++) {
         uint32_t reloc_type = ELF32_R_TYPE(rel[i].r_info);
@@ -400,29 +442,17 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectGOTHooks(J
             uintptr_t addr = (uintptr_t) *got_entry;
 
             if (addr != 0) {
-                // Read /proc/self/maps to verify
-                FILE *fp = fopen("/proc/self/maps", "r");
-                if (fp != nullptr) {
-                    char line[1024];
-
-                    while (fgets(line, sizeof(line), fp) != nullptr) {
-                        unsigned long start, end;
-                        if (sscanf(line, "%lx-%lx", &start, &end) == 2) {
-                            if (addr >= start && addr < end) {
-                                // Check if it's in a legitimate library
-                                if (strstr(line, ".so") != nullptr ||
-                                    strstr(line, "/system") != nullptr ||
-                                    strstr(line, "/apex") != nullptr) {
-                                    break;
-                                }
-                                // Address is in mapped region but not a library
-                                fclose(fp);
-                                return JNI_TRUE;
-                            }
+                for (const auto &entry : maps) {
+                    if (addr >= entry.start && addr < entry.end) {
+                        // Check if it's in a legitimate library
+                        if (strstr(entry.line, ".so") != nullptr ||
+                            strstr(entry.line, "/system") != nullptr ||
+                            strstr(entry.line, "/apex") != nullptr) {
+                            break;
                         }
+                        // Address is in mapped region but not a legitimate library
+                        return JNI_TRUE;
                     }
-
-                    fclose(fp);
                 }
             }
         }

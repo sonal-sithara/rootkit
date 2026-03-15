@@ -1,20 +1,17 @@
 package com.ssithara.rootkit.core
 
+import android.util.Base64
 import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
-import android.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-
 internal object EncryptionService {
-
-    private const val aseKey: String = "vL5x4Xqj4eS4E8XzV6Jt8Z9FvA4UrcJjx9pI5hHZzHk=";
 
     @Throws(Exception::class)
     private fun encrypt(plainText: String, keyBytes: ByteArray): String {
-        require(!(keyBytes == null || keyBytes.size != 32)) { "Key must be 32 bytes (256 bits)" }
+        require(keyBytes.size == 32) { "Key must be 32 bytes (256 bits)" }
 
         val iv = ByteArray(12)
         SecureRandom().nextBytes(iv)
@@ -33,9 +30,19 @@ internal object EncryptionService {
         return Base64.encodeToString(out, Base64.NO_WRAP)
     }
 
+    /**
+     * Encrypts [plainText] using AES-256-GCM with the provided Base64-encoded key.
+     *
+     * The key must decode to exactly 32 bytes. Use [com.ssithara.rootkit.RootKit.getEncryptionKey]
+     * to obtain the per-instance session key that was used to produce the ciphertext.
+     *
+     * @param plainText  The text to encrypt.
+     * @param base64Key  A Base64-encoded 32-byte AES key.
+     * @return           Base64-encoded ciphertext (IV prepended).
+     */
     @Throws(Exception::class)
-    fun encryptWithBase64Key(plainText: String): String {
-        val keyBytes: ByteArray = Base64.decode(aseKey, Base64.NO_WRAP)
+    fun encryptWithBase64Key(plainText: String, base64Key: String): String {
+        val keyBytes: ByteArray = Base64.decode(base64Key, Base64.NO_WRAP)
         return encrypt(plainText, keyBytes)
     }
 }

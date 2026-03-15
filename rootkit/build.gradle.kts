@@ -9,10 +9,6 @@ android {
     compileSdk = 36
     ndkVersion = "27.0.12077973"
 
-    buildFeatures {
-        prefab = true
-    }
-
     defaultConfig {
         minSdk = 24
 
@@ -23,7 +19,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
