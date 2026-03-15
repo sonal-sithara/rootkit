@@ -1,6 +1,9 @@
 package com.ssithara.rootkit.internal.dto
 
-internal data class MagiskStubInfoDto(
+/**
+ * Represents Magisk stub APK information for detection
+ */
+internal data class MagiskStubInfo(
     val version: String,
     val activities: Int,
     val services: Int,
@@ -8,3 +11,6 @@ internal data class MagiskStubInfoDto(
     val content_providers: Int,
     val class_name: String
 )
+
+// Type alias for backward compatibility
+internal typealias MagiskStubInfoDto = MagiskStubInfo

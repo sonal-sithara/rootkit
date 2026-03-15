@@ -3,6 +3,9 @@ package com.ssithara.rootkit
 import android.content.Context
 import com.ssithara.rootkit.core.EncryptionService
 import com.ssithara.rootkit.core.Result
+import com.ssithara.rootkit.core.periodic.PeriodicCheckConfig
+import com.ssithara.rootkit.core.periodic.PeriodicCheckController
+import com.ssithara.rootkit.core.periodic.PeriodicCheckControllerImpl
 import com.ssithara.rootkit.detection.environment.DebuggerDetection
 import com.ssithara.rootkit.detection.environment.EmulatorDetection
 import com.ssithara.rootkit.detection.root.MagiskDetection
@@ -10,6 +13,35 @@ import com.ssithara.rootkit.detection.root.MagiskHideDetection
 import com.ssithara.rootkit.detection.root.RootDetection
 import com.ssithara.rootkit.detection.runtime.RuntimeTamperingDetection
 
+/**
+ * RootKit - Android Security Detection Library
+ *
+ * This library provides comprehensive security detection including:
+ * - Root detection (Root, Magisk, MagiskHide)
+ * - Runtime tampering detection (Frida, Xposed, Memory tampering, Native hooks)
+ * - Environment detection (Emulator, Debugger)
+ *
+ * Basic usage:
+ * ```kotlin
+ * val rootKit = RootKit(context)
+ * rootKit.initialize()
+ *
+ * // On-demand checks
+ * val isRooted = rootKit.isRootedDevice()
+ * ```
+ *
+ * With periodic monitoring:
+ * ```kotlin
+ * val config = PeriodicCheckConfig.Builder()
+ *     .setInterval(30_000L)
+ *     .monitorAllDetections()
+ *     .setCallback(myCallback)
+ *     .build()
+ *
+ * val controller = rootKit.initialize(config)
+ * controller.start()
+ * ```
+ */
 class RootKit(private val context: Context) {
     private val magiskHideDetection by lazy { MagiskHideDetection(context) }
     private val magiskDetection by lazy { MagiskDetection(context) }
@@ -18,8 +50,75 @@ class RootKit(private val context: Context) {
     private val emulatorDetection by lazy { EmulatorDetection(context) }
     private val runtimeTamperingDetection by lazy { RuntimeTamperingDetection(context) }
 
+    /**
+     * Initialize the SDK with native library loading only.
+     * Backward compatible with existing usage.
+     *
+     * Call this before using any detection methods.
+     */
     fun initialize() {
         System.loadLibrary("rootkit")
+    }
+
+    /**
+     * Initialize the SDK with periodic security monitoring.
+     *
+     * This loads the native library and returns a controller for managing
+     * periodic security checks.
+     *
+     * @param config Configuration for periodic checks
+     * @return PeriodicCheckController to control the monitoring lifecycle
+     * @throws IllegalStateException if native library fails to load
+     *
+     * Example:
+     * ```kotlin
+     * val config = PeriodicCheckConfig.Builder()
+     *     .setInterval(30_000L)
+     *     .monitorAllDetections()
+     *     .setCallback(object : PeriodicCheckConfig.SecurityCallback {
+     *         override fun onDetectionResult(type: DetectionType, result: DetectionResult) {
+     *             // Handle individual detection result
+     *         }
+     *         override fun onCheckCycleComplete(summary: SecuritySummary) {
+     *             // Handle complete check cycle
+     *         }
+     *         override fun onError(type: DetectionType, error: Throwable) {
+     *             // Handle errors
+     *         }
+     *     })
+     *     .build()
+     *
+     * val controller = rootKit.initialize(config)
+     * controller.start()
+     * ```
+     */
+    fun initialize(config: PeriodicCheckConfig): PeriodicCheckController {
+        System.loadLibrary("rootkit")
+        return PeriodicCheckControllerImpl(context, config)
+    }
+
+    /**
+     * Initialize with a simplified configuration using DSL-style builder.
+     *
+     * @param block Configuration builder lambda
+     * @return PeriodicCheckController to control the monitoring lifecycle
+     *
+     * Example:
+     * ```kotlin
+     * val controller = rootKit.initialize {
+     *     setInterval(60_000L)
+     *     addDetections(
+     *         PeriodicCheckConfig.DetectionType.ROOT,
+     *         PeriodicCheckConfig.DetectionType.FRIDA
+     *     )
+     *     setCallback(myCallback)
+     * }
+     * controller.start()
+     * ```
+     */
+    fun initialize(block: PeriodicCheckConfig.Builder.() -> Unit): PeriodicCheckController {
+        val config = PeriodicCheckConfig.Builder().apply(block).build()
+        return initialize(config)
     }
 
     fun isRootedDevice(): String {

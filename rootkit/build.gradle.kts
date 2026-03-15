@@ -67,6 +67,10 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.rootbeer.lib)
     implementation(libs.xposeddetector)
+
+    // Periodic checks dependencies
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.lifecycle.process)
 }
 
 publishing {
