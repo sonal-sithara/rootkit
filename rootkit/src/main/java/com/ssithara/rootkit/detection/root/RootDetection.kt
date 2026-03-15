@@ -2,6 +2,7 @@ package com.ssithara.rootkit.detection.root
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import com.scottyab.rootbeer.RootBeer
 import com.ssithara.rootkit.core.DetectorResult
 import com.ssithara.rootkit.core.Result
@@ -14,21 +15,21 @@ import com.ssithara.rootkit.internal.util.ShellEx
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
-import java.util.Scanner
+import java.util.Locale
 
 class RootDetection(context: Context) : DetectorResult(context) {
 
     private val ONEPLUS = "oneplus"
     private val MOTO = "moto"
-    private val XIAOMI = "Xiaomi"
-
+    private val XIAOMI = "xiaomi"
 
     override fun run(): Result {
         var detected: Result = Result.NOT_FOUND
 
         val rootBeer = RootBeer(context)
 
-        if (Build.BRAND.contains(ONEPLUS) || Build.BRAND.contains(MOTO) || Build.BRAND.contains(
+        val brandLowercase = Build.BRAND.lowercase(Locale.ROOT)
+        if (brandLowercase.contains(ONEPLUS) || brandLowercase.contains(MOTO) || brandLowercase.contains(
                 XIAOMI
             )
         ) {
@@ -54,7 +55,7 @@ class RootDetection(context: Context) : DetectorResult(context) {
                 detected = Result.FOUND
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error during root detection", e)
         }
 
 
@@ -63,7 +64,7 @@ class RootDetection(context: Context) : DetectorResult(context) {
                 detected = Result.FOUND
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error in root method checks", e)
         }
 
 
@@ -85,12 +86,14 @@ class RootDetection(context: Context) : DetectorResult(context) {
         var process: Process? = null
         try {
             process = Runtime.getRuntime().exec(arrayOf<String>("/system/xbin/which", "su"))
-            val `in` = BufferedReader(InputStreamReader(process.getInputStream()))
-            if (`in`.readLine() != null) {
-                return true
+            BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+                if (reader.readLine() != null) {
+                    return true
+                }
             }
             return false
         } catch (e: java.lang.Exception) {
+            Log.e(TAG, "Error checking for su binary", e)
             return false
         } finally {
             if (process != null) {
@@ -204,6 +207,7 @@ class RootDetection(context: Context) : DetectorResult(context) {
                 pm.getPackageInfo(packageName, 0)
                 result = true
             } catch (e: java.lang.Exception) {
+                // Package not installed
             }
         }
         return result
@@ -211,15 +215,18 @@ class RootDetection(context: Context) : DetectorResult(context) {
 
     private fun commander(command: String?): Array<String>? {
         try {
-            val inputStream = Runtime.getRuntime().exec(command).inputStream
-            if (inputStream == null) {
-                return null
+            val process = Runtime.getRuntime().exec(command)
+            BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+                val propVal = reader.readText()
+                return propVal.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
             }
-            val propVal = Scanner(inputStream).useDelimiter("\\A").next()
-            return propVal.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
         } catch (e: java.lang.Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error executing command: $command", e)
             return null
         }
+    }
+
+    companion object {
+        private const val TAG = "RootDetection"
     }
 }

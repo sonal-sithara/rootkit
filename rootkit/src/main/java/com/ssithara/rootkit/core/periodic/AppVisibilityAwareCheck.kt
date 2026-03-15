@@ -41,7 +41,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
  * ```
  */
 class AppVisibilityAwareCheck(
-    private val controller: PeriodicCheckController,
+    private val controller: PeriodicCheckController?,
     private val config: VisibilityConfig = VisibilityConfig.DEFAULT
 ) : DefaultLifecycleObserver {
 
@@ -110,7 +110,7 @@ class AppVisibilityAwareCheck(
      * you only need to call it manually if you constructed this class directly.
      */
     fun attach() {
-        if (!isAttached) {
+        if (!isAttached && controller != null) {
             originalIntervalMs = controller.getInterval()
             ProcessLifecycleOwner.get().lifecycle.addObserver(this)
             isAttached = true
@@ -121,10 +121,15 @@ class AppVisibilityAwareCheck(
      * Unregisters this instance from the [ProcessLifecycleOwner] lifecycle.
      *
      * After detaching, foreground/background transitions no longer affect the
-     * controller.  Call [attach] to re-enable visibility-aware behaviour.
+     * controller. The original interval is restored before detaching.
+     * Call [attach] to re-enable visibility-aware behaviour.
      */
     fun detach() {
         if (isAttached) {
+            // Restore original interval before detaching
+            if (originalIntervalMs > 0) {
+                controller?.updateInterval(originalIntervalMs)
+            }
             ProcessLifecycleOwner.get().lifecycle.removeObserver(this)
             isAttached = false
         }
@@ -133,11 +138,11 @@ class AppVisibilityAwareCheck(
     override fun onStart(owner: LifecycleOwner) {
         // App came to foreground.
         if (config.resumeOnForeground) {
-            controller.resume()
+            controller?.resume()
 
             // Restore original interval if it was slowed down in the background.
             if (config.backgroundCheckIntervalMultiplier > 0) {
-                controller.resetInterval()
+                controller?.resetInterval()
             }
         }
     }
@@ -145,13 +150,13 @@ class AppVisibilityAwareCheck(
     override fun onStop(owner: LifecycleOwner) {
         // App went to background.
         if (config.pauseInBackground) {
-            controller.pause()
+            controller?.pause()
         } else if (config.backgroundCheckIntervalMultiplier > 0) {
             // Reduce frequency instead of pausing completely.
-            val currentInterval = controller.getInterval()
+            val currentInterval = controller?.getInterval() ?: return
             val newInterval = (currentInterval * config.backgroundCheckIntervalMultiplier)
                 .coerceAtLeast(config.minBackgroundIntervalMs)
-            controller.updateInterval(newInterval)
+            controller?.updateInterval(newInterval)
         }
     }
 

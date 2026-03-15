@@ -14,6 +14,7 @@ import com.ssithara.rootkit.detection.root.MagiskHideDetection
 import com.ssithara.rootkit.detection.root.RootDetection
 import com.ssithara.rootkit.detection.runtime.RuntimeTamperingDetection
 import java.security.SecureRandom
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * RootKit - Android Security Detection Library
@@ -61,6 +62,16 @@ class RootKit(context: Context) {
         Base64.encodeToString(keyBytes, Base64.NO_WRAP)
     }
 
+    /**
+     * Flag to track if the SDK has been initialized.
+     */
+    private val isInitialized = AtomicBoolean(false)
+
+    /**
+     * Flag to prevent duplicate library loading.
+     */
+    private val isLibraryLoaded = AtomicBoolean(false)
+
     private val magiskHideDetection by lazy { MagiskHideDetection(context) }
     private val magiskDetection by lazy { MagiskDetection(context) }
     private val rootDetection by lazy { RootDetection(context) }
@@ -84,13 +95,59 @@ class RootKit(context: Context) {
     fun getEncryptionKey(): String = sessionKey
 
     /**
+     * Returns whether the SDK has been initialized.
+     *
+     * @return true if [initialize] has been called, false otherwise.
+     */
+    fun isInitialized(): Boolean = isInitialized.get()
+
+    /**
+     * Ensures the SDK has been initialized before allowing detection methods to be called.
+     *
+     * @throws IllegalStateException if initialize() has not been called
+     */
+    private fun checkInitialized() {
+        if (!isInitialized.get()) {
+            throw IllegalStateException("RootKit is not initialized. Call initialize() first.")
+        }
+    }
+
+    /**
+     * Loads the native library only once, preventing duplicate loading attempts.
+     * Thread-safe implementation using AtomicBoolean.
+     *
+     * @throws UnsatisfiedLinkError if the library cannot be loaded
+     */
+    @Throws(UnsatisfiedLinkError::class)
+    private fun loadLibraryOnce() {
+        if (isLibraryLoaded.get()) {
+            return
+        }
+        synchronized(isLibraryLoaded) {
+            if (isLibraryLoaded.get()) {
+                return
+            }
+            System.loadLibrary("rootkit")
+            isLibraryLoaded.set(true)
+        }
+    }
+
+    /**
      * Initialize the SDK with native library loading only.
      * Backward compatible with existing usage.
      *
      * Call this before using any detection methods.
+     *
+     * @throws IllegalStateException if already initialized
+     * @throws UnsatisfiedLinkError if the native library cannot be loaded
      */
+    @Throws(IllegalStateException::class, UnsatisfiedLinkError::class)
     fun initialize() {
-        System.loadLibrary("rootkit")
+        if (isInitialized.get()) {
+            throw IllegalStateException("RootKit is already initialized")
+        }
+        loadLibraryOnce()
+        isInitialized.set(true)
     }
 
     /**
@@ -101,7 +158,7 @@ class RootKit(context: Context) {
      *
      * @param config Configuration for periodic checks
      * @return PeriodicCheckController to control the monitoring lifecycle
-     * @throws IllegalStateException if native library fails to load
+     * @throws IllegalStateException if already initialized or native library fails to load
      *
      * Example:
      * ```kotlin
@@ -125,8 +182,13 @@ class RootKit(context: Context) {
      * controller.start()
      * ```
      */
+    @Throws(IllegalStateException::class, UnsatisfiedLinkError::class)
     fun initialize(config: PeriodicCheckConfig): PeriodicCheckController {
-        System.loadLibrary("rootkit")
+        if (isInitialized.get()) {
+            throw IllegalStateException("RootKit is already initialized")
+        }
+        loadLibraryOnce()
+        isInitialized.set(true)
         return PeriodicCheckControllerImpl(context, config, sessionKey)
     }
 
@@ -155,6 +217,7 @@ class RootKit(context: Context) {
     }
 
     fun isRootedDevice(): String {
+        checkInitialized()
         val detections = listOf(
             magiskHideDetection.run(),
             magiskDetection.run(),
@@ -170,11 +233,13 @@ class RootKit(context: Context) {
     }
 
     fun isDebuggerDetected(): String {
+        checkInitialized()
         val result = debuggerDetection.run()
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
     fun isEmulatorDevice(): String {
+        checkInitialized()
         val result = emulatorDetection.run()
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
@@ -184,6 +249,7 @@ class RootKit(context: Context) {
      * Checks for Frida, Xposed, memory tampering, and native hooks.
      */
     fun isRuntimeTamperingDetected(): String {
+        checkInitialized()
         val result = runtimeTamperingDetection.run()
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
@@ -192,6 +258,7 @@ class RootKit(context: Context) {
      * Frida-specific detection.
      */
     fun isFridaDetected(): String {
+        checkInitialized()
         val result = if (runtimeTamperingDetection.isFridaDetected())
             Result.FOUND
         else
@@ -203,6 +270,7 @@ class RootKit(context: Context) {
      * Xposed/LSPosed-specific detection.
      */
     fun isXposedDetected(): String {
+        checkInitialized()
         val result = if (runtimeTamperingDetection.isXposedDetected())
             Result.FOUND
         else
@@ -214,6 +282,7 @@ class RootKit(context: Context) {
      * Memory tampering-specific detection.
      */
     fun isMemoryTamperingDetected(): String {
+        checkInitialized()
         val result = if (runtimeTamperingDetection.isMemoryTamperingDetected())
             Result.FOUND
         else
@@ -225,6 +294,7 @@ class RootKit(context: Context) {
      * Native hook-specific detection.
      */
     fun isNativeHookDetected(): String {
+        checkInitialized()
         val result = if (runtimeTamperingDetection.isNativeHookDetected())
             Result.FOUND
         else
@@ -234,8 +304,12 @@ class RootKit(context: Context) {
 
     /**
      * Get detailed detection results for all runtime tampering checks.
+     * 
+     * Note: Native hook detection details may contain null values indicating
+     * detection failures.
      */
-    fun getRuntimeTamperingDetails(): Map<String, Map<String, Boolean>> {
+    fun getRuntimeTamperingDetails(): Map<String, Map<String, Any?>> {
+        checkInitialized()
         return runtimeTamperingDetection.getComprehensiveDetectionDetails()
     }
 
@@ -243,6 +317,7 @@ class RootKit(context: Context) {
      * Get a summary of runtime tampering detections.
      */
     fun getRuntimeTamperingSummary(): RuntimeTamperingDetection.DetectionSummary {
+        checkInitialized()
         return runtimeTamperingDetection.getDetectionSummary()
     }
 
@@ -250,6 +325,7 @@ class RootKit(context: Context) {
      * Get detailed detection results for emulator checks.
      */
     fun getEmulatorDetails(): Map<String, Boolean> {
+        checkInitialized()
         return emulatorDetection.getDetectionDetails()
     }
 
@@ -257,6 +333,7 @@ class RootKit(context: Context) {
      * Get detailed detection results for debugger checks.
      */
     fun getDebuggerDetails(): Map<String, Boolean> {
+        checkInitialized()
         return debuggerDetection.getDetectionDetails()
     }
 }

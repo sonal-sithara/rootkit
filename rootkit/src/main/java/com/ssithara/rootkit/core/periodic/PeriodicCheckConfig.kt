@@ -22,6 +22,20 @@ class PeriodicCheckConfig private constructor(
     val errorHandler: ErrorHandler?,
     val executionMode: ExecutionMode
 ) {
+    init {
+        // Validate interval is positive
+        require(intervalMs > 0) {
+            "Interval must be positive, got: $intervalMs"
+        }
+        // Validate initial delay is non-negative
+        require(initialDelayMs >= 0) {
+            "Initial delay must be non-negative, got: $initialDelayMs"
+        }
+        // Validate detections is not empty
+        require(detections.isNotEmpty()) {
+            "At least one detection type must be specified"
+        }
+    }
     /**
      * Types of security detections that can be monitored
      */

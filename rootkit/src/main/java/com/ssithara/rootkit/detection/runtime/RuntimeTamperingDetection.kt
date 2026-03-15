@@ -4,6 +4,7 @@ import android.content.Context
 import com.ssithara.rootkit.core.DetectorResult
 import com.ssithara.rootkit.core.Result
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.random.Random
 
 /**
  * Runtime Tampering Detection Coordinator
@@ -22,14 +23,19 @@ import java.util.concurrent.atomic.AtomicReference
  * routines (port scans, /proc/self/maps reads, ELF walks, etc.). To prevent
  * the same work being repeated within a single logical "check" — for example
  * when a caller invokes [run] followed immediately by [isFridaDetected] — all
- * boolean helpers share a short-lived [CACHE_TTL_MS]-millisecond cache backed
- * by [getOrComputeSummary].
+ * boolean helpers share a short-lived cache backed by [getOrComputeSummary].
  *
  * The cache is stored in an [AtomicReference] so it is safe to read/write from
  * multiple threads without synchronization. In the unlikely event that two
  * threads both observe a stale entry at exactly the same moment, both will
  * compute a fresh summary independently and the last write wins — this is
  * acceptable because both computations produce the same logical result.
+ *
+ * ## Security Considerations
+ *
+ * - Cache TTL includes random jitter to prevent timing attacks
+ * - Detection failures are tracked separately from "not detected" results
+ * - Uses [Result.ERROR] when sub-detectors fail internally
  */
 class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
 
@@ -63,17 +69,20 @@ class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
 
     /**
      * Returns a [DetectionSummary] that was computed no earlier than
-     * [CACHE_TTL_MS] milliseconds ago.
+     * the effective cache TTL milliseconds ago.
      *
      * If the cached entry is still fresh it is returned immediately without
      * touching any native code.  Otherwise all four sub-detectors are run,
      * the result is cached, and then returned.
+     *
+     * The effective TTL includes random jitter to prevent timing attacks
+     * that could infer detection results by measuring cache hit/miss timing.
      */
     private fun getOrComputeSummary(): DetectionSummary {
         val now = System.currentTimeMillis()
 
         cachedSummary.get()?.let { cached ->
-            if (now - cached.timestamp < CACHE_TTL_MS) {
+            if (now - cached.timestamp < getEffectiveTtl()) {
                 return cached.summary
             }
         }
@@ -85,18 +94,41 @@ class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
 
         val summary = DetectionSummary(
             fridaDetected = fridaResult == Result.FOUND,
+            fridaFailed = fridaResult == Result.ERROR,
             xposedDetected = xposedResult == Result.FOUND,
+            xposedFailed = xposedResult == Result.ERROR,
             memoryTamperingDetected = memoryResult == Result.FOUND,
+            memoryTamperingFailed = memoryResult == Result.ERROR,
             nativeHookDetected = nativeHookResult == Result.FOUND,
+            nativeHookFailed = nativeHookResult == Result.ERROR,
         )
 
         cachedSummary.set(CachedSummary(summary, System.currentTimeMillis()))
         return summary
     }
 
-    /** Runs all sub-detectors and returns [Result.FOUND] if any threat is detected. */
+    /**
+     * Computes the effective cache TTL with random jitter to prevent timing attacks.
+     *
+     * The jitter is a random value between 0 and [MAX_JITTER_MS] milliseconds,
+     * added to the base TTL. This makes it harder for attackers to infer
+     * detection results by measuring cache timing differences.
+     */
+    private fun getEffectiveTtl(): Long {
+        return CACHE_TTL_MS + Random.nextLong(0, MAX_JITTER_MS)
+    }
+
+    /** Runs all sub-detectors and returns [Result.FOUND] if any threat is detected.
+     * Returns [Result.ERROR] if any sub-detector failed internally.
+     */
     override fun run(): Result {
         val summary = getOrComputeSummary()
+        
+        // If any detection failed, return ERROR to indicate incomplete results
+        if (summary.anyFailed) {
+            return Result.ERROR
+        }
+        
         return if (summary.anyDetected) Result.FOUND else Result.NOT_FOUND
     }
 
@@ -149,8 +181,11 @@ class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
      * checks to produce a granular breakdown — this is intentional because the
      * per-vector detail methods are more expensive than the summary and are only
      * called when the caller explicitly needs them.
+     * 
+     * Note: Native hook detection details may contain null values indicating
+     * detection failures.
      */
-    fun getComprehensiveDetectionDetails(): Map<String, Map<String, Boolean>> {
+    fun getComprehensiveDetectionDetails(): Map<String, Map<String, Any?>> {
         return mapOf(
             "frida" to fridaDetection.getDetectionDetails(),
             "xposed" to xposedDetection.getDetectionDetails(),
@@ -165,12 +200,19 @@ class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
 
     /**
      * Immutable snapshot of a single detection cycle.
+     *
+     * Includes both detection results and failure flags to distinguish between
+     * "not detected" and "detection failed" states.
      */
     data class DetectionSummary(
         val fridaDetected: Boolean,
+        val fridaFailed: Boolean = false,
         val xposedDetected: Boolean,
+        val xposedFailed: Boolean = false,
         val memoryTamperingDetected: Boolean,
+        val memoryTamperingFailed: Boolean = false,
         val nativeHookDetected: Boolean,
+        val nativeHookFailed: Boolean = false,
     ) {
         /** `true` if at least one threat was detected. */
         val anyDetected: Boolean
@@ -184,6 +226,15 @@ class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
         val detectionCount: Int
             get() = listOf(fridaDetected, xposedDetected, memoryTamperingDetected, nativeHookDetected)
                 .count { it }
+
+        /** `true` if any sub-detector failed to complete its check. */
+        val anyFailed: Boolean
+            get() = fridaFailed || xposedFailed || memoryTamperingFailed || nativeHookFailed
+
+        /** Number of sub-detectors that failed. */
+        val failureCount: Int
+            get() = listOf(fridaFailed, xposedFailed, memoryTamperingFailed, nativeHookFailed)
+                .count { it }
     }
 
     // -------------------------------------------------------------------------
@@ -192,13 +243,20 @@ class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
 
     companion object {
         /**
-         * How long (in milliseconds) a computed [DetectionSummary] is considered
-         * fresh before the sub-detectors are run again.
+         * Base cache TTL in milliseconds.
          *
          * Five seconds is a reasonable balance between:
          * - Avoiding redundant native calls within a single logical check operation.
          * - Ensuring results remain current for the periodic monitoring use-case.
          */
         private const val CACHE_TTL_MS = 5_000L
+
+        /**
+         * Maximum random jitter added to cache TTL to prevent timing attacks.
+         *
+         * Adding random jitter makes it harder for attackers to infer detection
+         * results by measuring the time difference between cache hits and misses.
+         */
+        private const val MAX_JITTER_MS = 1_500L
     }
 }

@@ -1,6 +1,7 @@
 package com.ssithara.rootkit.detection.root
 
 import android.content.Context
+import android.util.Log
 import com.ssithara.rootkit.core.DetectorResult
 import com.ssithara.rootkit.core.Result
 import java.io.BufferedReader
@@ -23,6 +24,13 @@ class MagiskDetection(context: Context) : DetectorResult(context) {
                 "/system/bin/failsafe/",
                 "/system/usr/we-need-root/",
                 "/su",
+                // Additional Magisk mount paths
+                "/sbin/.magisk",
+                "/data/adb/magisk",
+                "/data/adb/modules",
+                "/data/adb/post-fs-data.d",
+                "/data/adb/magisk.img",
+                "/sbin/magisk"
             )
 
             val file = File("/proc/self/mounts")
@@ -31,7 +39,7 @@ class MagiskDetection(context: Context) : DetectorResult(context) {
                     var str: String?
                     while (reader.readLine().also { str = it } != null) {
                         for (path in blackListedMountPaths) {
-                            if (str!!.contains(path)) {
+                            if (str?.contains(path) == true) {
                                 isMagiskPresent = Result.FOUND
                                 break
                             }
@@ -41,9 +49,10 @@ class MagiskDetection(context: Context) : DetectorResult(context) {
                 }
             }
         } catch (e: IOException) {
+            Log.e(TAG, "Error reading /proc/self/mounts", e)
             // /proc/self/mounts unreadable — continue to native check
         } catch (e: Exception) {
-            // ignore
+            Log.e(TAG, "Unexpected error in Magisk detection", e)
         }
 
         // Native: run independently regardless of the Kotlin result above.
@@ -54,9 +63,13 @@ class MagiskDetection(context: Context) : DetectorResult(context) {
                 isMagiskPresent = Result.FOUND
             }
         } catch (e: Exception) {
-            // ignore — native library may not be loaded yet
+            Log.e(TAG, "Native Magisk check failed", e)
         }
 
         return isMagiskPresent
+    }
+
+    companion object {
+        private const val TAG = "MagiskDetection"
     }
 }

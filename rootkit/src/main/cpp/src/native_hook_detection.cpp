@@ -124,7 +124,9 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectInlineHook
 
     void *libc_handle = dlopen("libc.so", RTLD_NOW);
     if (libc_handle == nullptr) {
-        return JNI_FALSE;
+        // Returning -1 to indicate detection failure (dlopen failed)
+        // This is treated as suspicious in Kotlin layer
+        return -1;
     }
 
     bool detected = false;
@@ -675,7 +677,9 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectModifiedFu
 
     void *libc_handle = dlopen("libc.so", RTLD_NOW);
     if (libc_handle == nullptr) {
-        return JNI_FALSE;
+        // Returning -1 to indicate detection failure (dlopen failed)
+        // This is treated as suspicious in Kotlin layer
+        return -1;
     }
 
     // Get the base address of libc

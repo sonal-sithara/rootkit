@@ -9,13 +9,24 @@ import com.ssithara.rootkit.core.Result
  * Xposed/LSPosed Detection Module
  * 
  * Detects Xposed hooking frameworks through multiple vectors:
- * - Stack trace analysis (checks for Xposed frames in exceptions)
  * - Package detection (checks for installed Xposed packages)
  * - Memory maps detection (looks for Xposed signatures in /proc/self/maps)
  * - Library detection (checks for Xposed libraries in memory)
  * - Zygote detection (checks for Zygote modifications)
  * - Riru detection (checks for Riru framework)
  * - Zygisk detection (checks for Zygisk injection)
+ * - Hook memory detection (checks for hook-related memory patterns)
+ *
+ * ## Security Considerations
+ *
+ * The stack trace check was removed because modern hooking frameworks can
+ * suppress exception stack traces, making this detection unreliable.
+ *
+ * ## Error Handling
+ *
+ * Detection failures are tracked separately from "not detected" results.
+ * Native method failures return [Result.ERROR] instead of treating them
+ * as "no detection".
  */
 class XposedDetection(context: Context) : DetectorResult(context) {
 
@@ -58,45 +69,50 @@ class XposedDetection(context: Context) : DetectorResult(context) {
         private external fun detectHookMemory(): Boolean
     }
 
+    /**
+     * Runs all detection methods and returns the aggregated result.
+     *
+     * Returns [Result.FOUND] if any detection method finds Xposed.
+     * Returns [Result.ERROR] if any native method fails.
+     * Returns [Result.NOT_FOUND] only if all checks pass without finding Xposed.
+     */
     override fun run(): Result {
-        // Check stack trace (Kotlin-based detection)
-        if (checkStackTrace()) return Result.FOUND
-
         // Check installed packages (Kotlin-based detection)
         if (checkInstalledPackages()) return Result.FOUND
 
         // Check for loaded classes (Kotlin-based detection)
         if (checkLoadedClasses()) return Result.FOUND
 
-        // Native-based detections
-        val nativeDetections = mutableListOf<Boolean>()
-        runCatching { nativeDetections.add(detectByMemoryMaps()) }
-        runCatching { nativeDetections.add(detectByLibraries()) }
-        runCatching { nativeDetections.add(detectByZygote()) }
-        runCatching { nativeDetections.add(detectRiru()) }
-        runCatching { nativeDetections.add(detectZygisk()) }
-        runCatching { nativeDetections.add(detectHookMemory()) }
+        // Native-based detections with error tracking
+        val detections = mutableListOf<Boolean>()
+        val failures = mutableListOf<Boolean>()
 
-        return if (nativeDetections.any { it }) Result.FOUND else Result.NOT_FOUND
-    }
+        runCatching { detections.add(detectByMemoryMaps()) }
+            .onFailure { failures.add(true) }
+        runCatching { detections.add(detectByLibraries()) }
+            .onFailure { failures.add(true) }
+        runCatching { detections.add(detectByZygote()) }
+            .onFailure { failures.add(true) }
+        runCatching { detections.add(detectRiru()) }
+            .onFailure { failures.add(true) }
+        runCatching { detections.add(detectZygisk()) }
+            .onFailure { failures.add(true) }
+        runCatching { detections.add(detectHookMemory()) }
+            .onFailure { failures.add(true) }
 
-    /**
-     * Check stack trace for Xposed frames
-     */
-    private fun checkStackTrace(): Boolean {
-        return try {
-            throw Exception("Xposed detection")
-        } catch (e: Exception) {
-            e.stackTrace.any { frame ->
-                XPOSED_CLASS_SIGNATURES.any { signature ->
-                    frame.className.contains(signature, ignoreCase = true)
-                }
-            }
+        // If any native method failed, return ERROR
+        if (failures.isNotEmpty()) {
+            return Result.ERROR
         }
+
+        return if (detections.any { it }) Result.FOUND else Result.NOT_FOUND
     }
 
     /**
-     * Check for installed Xposed-related packages
+     * Check for installed Xposed-related packages.
+     * 
+     * Note: This check may produce false positives on development devices
+     * that have Xposed Manager installed but are not actively hooking.
      */
     private fun checkInstalledPackages(): Boolean {
         val pm = context.packageManager
@@ -111,7 +127,10 @@ class XposedDetection(context: Context) : DetectorResult(context) {
     }
 
     /**
-     * Check for Xposed-related classes loaded in the classloader
+     * Check for Xposed-related classes loaded in the classloader.
+     * 
+     * This is often more reliable than package detection since Xposed
+     * modules may not have the manager installed.
      */
     private fun checkLoadedClasses(): Boolean {
         return try {
@@ -136,10 +155,9 @@ class XposedDetection(context: Context) : DetectorResult(context) {
     }
 
     /**
-     * Run individual detection methods for granular checking
+     * Run individual detection methods for granular checking.
+     * Returns false if the native method fails.
      */
-    fun isDetectedByStackTrace(): Boolean = checkStackTrace()
-
     fun isDetectedByPackages(): Boolean = checkInstalledPackages()
 
     fun isDetectedByLoadedClasses(): Boolean = checkLoadedClasses()
@@ -157,11 +175,12 @@ class XposedDetection(context: Context) : DetectorResult(context) {
     fun isDetectedByHookMemory(): Boolean = runCatching { detectHookMemory() }.getOrDefault(false)
 
     /**
-     * Get detailed detection results
+     * Get detailed detection results.
+     * Note: Failures are not explicitly tracked in the returned map;
+     * callers should use [run] to check for detection failures.
      */
     fun getDetectionDetails(): Map<String, Boolean> {
         return mapOf(
-            "stack_trace_detection" to isDetectedByStackTrace(),
             "package_detection" to isDetectedByPackages(),
             "loaded_classes_detection" to isDetectedByLoadedClasses(),
             "memory_maps_detection" to isDetectedByMemoryMaps(),

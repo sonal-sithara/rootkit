@@ -129,7 +129,26 @@ internal class PeriodicCheckControllerImpl(
         }
 
         scope.launch {
-            executeCheckCycle()
+            // Wrap with execution guard to prevent concurrent execution with periodic checks
+            executionGuard.executeWithGuard {
+                executeDetections()
+            }.fold(
+                onExecuted = { results ->
+                    val startTime = System.currentTimeMillis()
+                    val duration = System.currentTimeMillis() - startTime
+                    val summary = createSummary(results, duration)
+
+                    // Store last summary
+                    lastSummaryRef.set(summary)
+
+                    // Notify callback on main thread
+                    notifyCycleComplete(summary)
+                },
+                onSkipped = {
+                    // Check was skipped due to overlap with periodic check
+                    // This is expected behavior - the periodic check will handle notifications
+                }
+            )
         }
     }
 
@@ -189,16 +208,11 @@ internal class PeriodicCheckControllerImpl(
     }
 
     private suspend fun executeCheckCycle() {
-        val startTime = System.currentTimeMillis()
-
         executionGuard.executeWithGuard {
-            when (config.executionMode) {
-                PeriodicCheckConfig.ExecutionMode.SEQUENTIAL -> executeSequential()
-                PeriodicCheckConfig.ExecutionMode.PARALLEL -> executeParallel()
-                PeriodicCheckConfig.ExecutionMode.STAGGERED -> executeStaggered()
-            }
+            executeDetections()
         }.fold(
             onExecuted = { results ->
+                val startTime = System.currentTimeMillis()
                 val duration = System.currentTimeMillis() - startTime
                 val summary = createSummary(results, duration)
 
@@ -212,6 +226,18 @@ internal class PeriodicCheckControllerImpl(
                 // Check was skipped due to overlap - this is expected behavior
             }
         )
+    }
+
+    /**
+     * Internal function that executes all detections based on the configured execution mode.
+     * This function is called within the execution guard by both periodic checks and checkNow().
+     */
+    private suspend fun executeDetections(): List<PeriodicCheckConfig.DetectionResult> {
+        return when (config.executionMode) {
+            PeriodicCheckConfig.ExecutionMode.SEQUENTIAL -> executeSequential()
+            PeriodicCheckConfig.ExecutionMode.PARALLEL -> executeParallel()
+            PeriodicCheckConfig.ExecutionMode.STAGGERED -> executeStaggered()
+        }
     }
 
     private suspend fun executeSequential(): List<PeriodicCheckConfig.DetectionResult> {
@@ -277,11 +303,17 @@ internal class PeriodicCheckControllerImpl(
         } catch (e: CancellationException) {
             throw e  // Don't catch cancellation
         } catch (e: Exception) {
-            // Let error handler decide what to do
-            config.errorHandler?.handleError(type, e)
-
-            // Notify error callback
+            // Notify error callback on main thread (like other callbacks)
             notifyError(type, e)
+
+            // Let error handler decide what to do - dispatch to main thread for consistency
+            withContext(mainDispatcher) {
+                try {
+                    config.errorHandler?.handleError(type, e)
+                } catch (handlerEx: Exception) {
+                    Log.e(TAG, "Error handler threw exception", handlerEx)
+                }
+            }
 
             // Return safe result (fail safe - assume no threat on error)
             PeriodicCheckConfig.DetectionResult(

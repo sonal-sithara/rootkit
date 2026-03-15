@@ -10,6 +10,12 @@ import androidx.lifecycle.LifecycleOwner
  * Automatically pauses checks when the lifecycle owner (Activity/Fragment) stops,
  * and resumes when it starts. Disposes the controller when the lifecycle is destroyed.
  *
+ * **Lifecycle State Requirements:**
+ * - [attach] must be called to start observing lifecycle events
+ * - [controller.start] should be called after attaching to begin periodic checks
+ * - [controller.dispose] will only be called if the controller was started (via [controller.start])
+ * - If the controller was never started, dispose() should be called manually by the caller
+ *
  * ## Construction
  *
  * Use the [bind] factory method or the [bindToLifecycle] extension rather than
@@ -31,6 +37,11 @@ class LifecycleAwarePeriodicCheck(
     val controller: PeriodicCheckController,
     private val lifecycle: Lifecycle,
 ) : DefaultLifecycleObserver {
+
+    // Track whether the controller has been started
+    // This ensures dispose() is only called if start() was called
+    @Volatile
+    private var hasStarted = false
 
     // NO init block — addObserver(this) is intentionally NOT called here.
     // Registering `this` as an observer inside a constructor is the classic
@@ -65,13 +76,29 @@ class LifecycleAwarePeriodicCheck(
 
     override fun onDestroy(owner: LifecycleOwner) {
         // Activity/Fragment is being destroyed — release all resources.
-        controller.dispose()
+        // Only dispose if the controller was started; otherwise, let the caller
+        // handle disposal since they may be reusing the controller.
+        if (hasStarted) {
+            controller.dispose()
+        }
+    }
+
+    /**
+     * Marks the controller as started. This should be called after
+     * [controller.start] to ensure proper cleanup on lifecycle destruction.
+     *
+     * This is automatically called by the [bind] and [bindToLifecycle] factory methods
+     * after starting the controller.
+     */
+    fun markStarted() {
+        hasStarted = true
     }
 
     companion object {
         /**
          * Creates a [LifecycleAwarePeriodicCheck], attaches it to [lifecycle],
-         * and returns the wrapper so the caller retains a reference to it.
+         * starts the controller, and returns the wrapper so the caller retains
+         * a reference to it.
          *
          * Prefer this factory over the constructor to avoid the `this`-escape
          * anti-pattern.
@@ -84,7 +111,10 @@ class LifecycleAwarePeriodicCheck(
             controller: PeriodicCheckController,
             lifecycle: Lifecycle,
         ): LifecycleAwarePeriodicCheck {
-            return LifecycleAwarePeriodicCheck(controller, lifecycle).attach()
+            val wrapper = LifecycleAwarePeriodicCheck(controller, lifecycle).attach()
+            wrapper.controller.start()
+            wrapper.markStarted()
+            return wrapper
         }
     }
 }
