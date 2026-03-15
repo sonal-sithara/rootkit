@@ -137,13 +137,13 @@ class RootDetection(context: Context) : DetectorResult(context) {
 
         var result = false
         val lines: Array<String>? = commander("getprop")
-        if (lines == null) {
+        if (lines.isNullOrEmpty()) {
             return false
         }
         for (line in lines) {
             for (key in dangerousProps.keys) {
                 if (line.contains(key)) {
-                    var badValue = dangerousProps.get(key)
+                    var badValue = dangerousProps[key]
                     badValue = "[$badValue]"
                     if (line.contains(badValue)) {
                         result = true
@@ -159,7 +159,11 @@ class RootDetection(context: Context) : DetectorResult(context) {
         var result = false
         val lines: Array<String>? = commander("mount")
 
-        for (line in lines ?: return false) {
+        if (lines.isNullOrEmpty()) {
+            return false
+        }
+
+        for (line in lines) {
             val args = line.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
             if (args.size < 4) {
                 continue

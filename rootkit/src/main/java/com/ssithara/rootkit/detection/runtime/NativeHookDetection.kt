@@ -30,15 +30,19 @@ class NativeHookDetection(context: Context) : DetectorResult(context) {
 
     companion object {
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectInlineHooks(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectGOTHooks(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectPLTHooks(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectHookFrameworks(): Boolean
 
         /**
@@ -47,6 +51,7 @@ class NativeHookDetection(context: Context) : DetectorResult(context) {
          * This is treated as a suspicious condition.
          */
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectModifiedFunctionPointers(): Int
     }
 

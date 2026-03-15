@@ -1,5 +1,6 @@
 package com.ssithara.rootkit.internal.util
 
+import android.util.Log
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.InputStreamReader
@@ -8,6 +9,7 @@ import java.io.OutputStreamWriter
 internal class ShellEx {
 
     companion object {
+        private const val TAG = "ShellEx"
         enum class SHELL_CMD(val command: Array<String>) {
             check_su_binary(arrayOf("/system/xbin/which", "su")),
             check_daemon_su(arrayOf("ps", "daemonsu")),
@@ -26,19 +28,23 @@ internal class ShellEx {
             return null
         }
 
-        BufferedWriter(OutputStreamWriter(localProcess.outputStream)).use { out ->
-            BufferedReader(InputStreamReader(localProcess.inputStream)).use { `in` ->
-                try {
-                    var line: String?
-                    while (`in`.readLine().also { line = it } != null) {
-                        fullResponse.add(line!!)
+        return try {
+            BufferedWriter(OutputStreamWriter(localProcess.outputStream)).use { out ->
+                BufferedReader(InputStreamReader(localProcess.inputStream)).use { `in` ->
+                    try {
+                        var line: String?
+                        while (`in`.readLine().also { line = it } != null) {
+                            fullResponse.add(line!!)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error reading command output", e)
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
                 }
             }
+            fullResponse
+        } finally {
+            localProcess.destroy()
         }
-        return fullResponse
     }
 
     /**

@@ -24,21 +24,27 @@ class FridaDetection(context: Context) : DetectorResult(context) {
 
     companion object {
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectByPorts(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectByMemoryMaps(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectByThreads(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectByLibraries(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectByFileDescriptors(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectByEnvVars(): Boolean
     }
 

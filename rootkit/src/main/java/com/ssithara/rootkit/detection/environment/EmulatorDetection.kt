@@ -2,12 +2,17 @@ package com.ssithara.rootkit.detection.environment
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import com.ssithara.rootkit.core.DetectorResult
 import com.ssithara.rootkit.core.Result
 import java.io.File
 import java.util.Locale
 
 class EmulatorDetection(context: Context) : DetectorResult(context) {
+
+    companion object {
+        private const val TAG = "EmulatorDetection"
+    }
 
     private val paths: ArrayList<String?> = ArrayList<String?>(
         mutableListOf<String?>(
@@ -45,15 +50,15 @@ class EmulatorDetection(context: Context) : DetectorResult(context) {
                 || Build.MODEL.lowercase(Locale.getDefault()).contains("droid4x")
                 || Build.MODEL.contains("Emulator")
                 || Build.MODEL.contains("Android SDK built for x86")
-                || Build.HARDWARE.lowercase(Locale.getDefault()).contains("goldfish")
+                || Build.HARDWARE.lowercase(Locale.ROOT).contains("goldfish")
                 || Build.HARDWARE == "goldfish_x86_64" || Build.HARDWARE == "goldfish" || Build.HARDWARE == "vbox86" || Build.HARDWARE.lowercase(
-            Locale.getDefault()
+            Locale.ROOT
         ).contains("nox")
                 || Build.FINGERPRINT.startsWith("generic")
                 || Build.PRODUCT == "sdk" || Build.PRODUCT == "google_sdk" || Build.PRODUCT == "sdk_x86" || Build.PRODUCT == "vbox86p" || Build.PRODUCT.lowercase(
-            Locale.getDefault()
+            Locale.ROOT
         ).contains("nox")
-                || Build.BOARD.lowercase(Locale.getDefault()).contains("nox")
+                || Build.BOARD.lowercase(Locale.ROOT).contains("nox")
                 || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
     }
 
@@ -66,7 +71,7 @@ class EmulatorDetection(context: Context) : DetectorResult(context) {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error checking emulator files", e)
         }
         return false
     }

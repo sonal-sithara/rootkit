@@ -2,6 +2,7 @@ package com.ssithara.rootkit.core.periodic
 
 import android.content.Context
 import android.os.Process
+import android.util.Log
 import com.ssithara.rootkit.core.EncryptionService
 import com.ssithara.rootkit.core.Result
 import com.ssithara.rootkit.detection.environment.DebuggerDetection
@@ -131,10 +132,8 @@ internal class PeriodicCheckControllerImpl(
         scope.launch {
             // Wrap with execution guard to prevent concurrent execution with periodic checks
             executionGuard.executeWithGuard {
-                executeDetections()
-            }.fold(
-                onExecuted = { results ->
-                    val startTime = System.currentTimeMillis()
+                val startTime = System.currentTimeMillis()
+                executeDetections().also { results ->
                     val duration = System.currentTimeMillis() - startTime
                     val summary = createSummary(results, duration)
 
@@ -143,7 +142,9 @@ internal class PeriodicCheckControllerImpl(
 
                     // Notify callback on main thread
                     notifyCycleComplete(summary)
-                },
+                }
+            }.fold(
+                onExecuted = { /* Results already handled in executeDetections */ },
                 onSkipped = {
                     // Check was skipped due to overlap with periodic check
                     // This is expected behavior - the periodic check will handle notifications
@@ -209,10 +210,8 @@ internal class PeriodicCheckControllerImpl(
 
     private suspend fun executeCheckCycle() {
         executionGuard.executeWithGuard {
-            executeDetections()
-        }.fold(
-            onExecuted = { results ->
-                val startTime = System.currentTimeMillis()
+            val startTime = System.currentTimeMillis()
+            executeDetections().also { results ->
                 val duration = System.currentTimeMillis() - startTime
                 val summary = createSummary(results, duration)
 
@@ -221,7 +220,9 @@ internal class PeriodicCheckControllerImpl(
 
                 // Notify callback on main thread
                 notifyCycleComplete(summary)
-            },
+            }
+        }.fold(
+            onExecuted = { /* Results already handled in executeDetections */ },
             onSkipped = {
                 // Check was skipped due to overlap - this is expected behavior
             }
@@ -415,6 +416,7 @@ internal class PeriodicCheckControllerImpl(
     }
 
     companion object {
+        private const val TAG = "PeriodicCheckController"
         private const val CHECK_TIMEOUT_MS = 5_000L
         private const val DEFAULT_STAGGER_DELAY_MS = 50L
     }

@@ -48,17 +48,12 @@ Java_com_ssithara_rootkit_detection_runtime_MemoryTamperingDetection_detectSuspi
 
     while (fgets(line, sizeof(line), fp) != nullptr) {
         char perms[5];
-        unsigned long start, end;
 
-        // Parse the line
-        if (sscanf(line, "%lx-%lx %4s", &start, &end, perms) >= 3) {
+        // Parse the line - only need permissions for this check
+        if (sscanf(line, "%*lx-%*lx %4s", perms) >= 1) {
             // Check for writable and executable memory
             bool is_writable = (perms[1] == 'w');
             bool is_executable = (perms[2] == 'x');
-            bool is_readonly = (perms[0] == 'r');
-            (void) is_readonly;  // Reserved for future use
-            (void) start;  // Reserved for future use
-            (void) end;  // Reserved for future use
 
             // Check if it's an anonymous mapping (no path at end)
             bool is_anonymous = false;
@@ -109,12 +104,9 @@ Java_com_ssithara_rootkit_detection_runtime_MemoryTamperingDetection_detectAnony
 
     while (fgets(line, sizeof(line), fp) != nullptr) {
         char perms[5];
-        unsigned long start, end;
 
-        if (sscanf(line, "%lx-%lx %4s", &start, &end, perms) >= 3) {
-            (void) start;  // Reserved for future use
-            (void) end;  // Reserved for future use
-
+        // Parse the line - only need permissions for this check
+        if (sscanf(line, "%*lx-%*lx %4s", perms) >= 1) {
             // Check for executable permission
             bool is_executable = (perms[2] == 'x');
 

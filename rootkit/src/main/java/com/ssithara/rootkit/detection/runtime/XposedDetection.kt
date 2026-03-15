@@ -51,21 +51,27 @@ class XposedDetection(context: Context) : DetectorResult(context) {
         )
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectByMemoryMaps(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectByLibraries(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectByZygote(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectRiru(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectZygisk(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectHookMemory(): Boolean
     }
 

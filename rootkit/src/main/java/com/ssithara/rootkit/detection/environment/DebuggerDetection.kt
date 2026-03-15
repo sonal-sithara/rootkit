@@ -3,6 +3,7 @@ package com.ssithara.rootkit.detection.environment
 import android.content.Context
 import android.os.Debug
 import android.provider.Settings
+import android.util.Log
 import com.ssithara.rootkit.core.DetectorResult
 import com.ssithara.rootkit.core.Result
 import com.ssithara.rootkit.detection.runtime.FridaDetection
@@ -20,6 +21,17 @@ import com.ssithara.rootkit.detection.runtime.FridaDetection
  */
 class DebuggerDetection(context: Context) : DetectorResult(context) {
 
+    companion object {
+        private const val TAG = "DebuggerDetection"
+    }
+
+    /**
+     * Whether to include Frida detection in this detector.
+     * Set to false if you're using RuntimeTamperingDetection separately
+     * to avoid duplicate detection overhead.
+     */
+    var includeFridaDetection: Boolean = true
+
     private val fridaDetection by lazy { FridaDetection(context) }
 
     override fun run(): Result {
@@ -33,7 +45,16 @@ class DebuggerDetection(context: Context) : DetectorResult(context) {
             0
         ) == 1
 
-        val isFridaDetected = fridaDetection.run() == Result.FOUND
+        val isFridaDetected = if (includeFridaDetection) {
+            try {
+                fridaDetection.run() == Result.FOUND
+            } catch (e: Exception) {
+                Log.e(TAG, "Frida detection failed", e)
+                false
+            }
+        } else {
+            false
+        }
 
         return if (isDebuggerConnected || isAdbEnabled || isFridaDetected) {
             Result.FOUND
@@ -63,9 +84,14 @@ class DebuggerDetection(context: Context) : DetectorResult(context) {
             false
         }
 
-        val isFridaDetected = try {
-            fridaDetection.run() == Result.FOUND
-        } catch (e: Exception) {
+        val isFridaDetected = if (includeFridaDetection) {
+            try {
+                fridaDetection.run() == Result.FOUND
+            } catch (e: Exception) {
+                Log.e(TAG, "Frida detection failed", e)
+                false
+            }
+        } else {
             false
         }
 

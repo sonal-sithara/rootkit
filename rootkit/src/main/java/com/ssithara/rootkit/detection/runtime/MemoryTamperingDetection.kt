@@ -34,21 +34,27 @@ class MemoryTamperingDetection(context: Context) : DetectorResult(context) {
 
     companion object {
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectSuspiciousRegions(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectAnonymousExecMemory(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun checkCodeIntegrity(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectUnusualPermissions(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectCodeCaves(): Boolean
 
         @JvmStatic
+        @Throws(UnsatisfiedLinkError::class)
         private external fun detectModifiedBaseAddress(): Boolean
     }
 
