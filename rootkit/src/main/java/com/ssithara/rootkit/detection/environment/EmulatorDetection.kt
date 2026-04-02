@@ -47,7 +47,7 @@ class EmulatorDetection(context: Context) : DetectorResult(context) {
         return Build.MANUFACTURER.contains("Genymotion")
                 || Build.MODEL.contains("google_sdk")
                 || Build.MODEL.contains("sdk_gphone64_x86_64")
-                || Build.MODEL.lowercase(Locale.getDefault()).contains("droid4x")
+                || Build.MODEL.lowercase(Locale.ROOT).contains("droid4x")
                 || Build.MODEL.contains("Emulator")
                 || Build.MODEL.contains("Android SDK built for x86")
                 || Build.HARDWARE.lowercase(Locale.ROOT).contains("goldfish")

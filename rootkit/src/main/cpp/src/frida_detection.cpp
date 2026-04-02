@@ -281,10 +281,15 @@ Java_com_ssithara_rootkit_detection_runtime_FridaDetection_detectByFileDescripto
 
 /**
  * @brief Detect Frida by checking for specific environment variables.
- * 
+ *
+ * Disabled: The environment variables checked here (FRIDA_SCRIPT_PATH,
+ * FRIDA_EXTERNAL_DEVICE, FRIDA_SERVER_PATH) are never set by Frida in
+ * practice.  The other five detection methods (ports, memory maps, threads,
+ * libraries, file descriptors) provide comprehensive coverage.
+ *
  * @param env JNI environment (unused)
  * @param clazz Java class reference (unused)
- * @return JNI_TRUE if Frida environment variable detected, JNI_FALSE otherwise
+ * @return Always JNI_FALSE
  */
 extern "C"
 JNIEXPORT jboolean JNICALL
@@ -292,20 +297,5 @@ Java_com_ssithara_rootkit_detection_runtime_FridaDetection_detectByEnvVars(JNIEn
                                                                            jclass clazz) {
     (void) env;
     (void) clazz;
-
-    // Check for common Frida environment variables
-    const char *frida_env_vars[] = {
-            "FRIDA_SCRIPT_PATH",
-            "FRIDA_EXTERNAL_DEVICE",
-            "FRIDA_SERVER_PATH"
-    };
-
-    int num_vars = sizeof(frida_env_vars) / sizeof(frida_env_vars[0]);
-    for (int i = 0; i < num_vars; i++) {
-        if (getenv(frida_env_vars[i]) != nullptr) {
-            return JNI_TRUE;
-        }
-    }
-
     return JNI_FALSE;
 }

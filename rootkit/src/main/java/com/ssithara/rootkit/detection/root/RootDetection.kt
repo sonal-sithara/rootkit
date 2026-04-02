@@ -83,23 +83,35 @@ class RootDetection(context: Context) : DetectorResult(context) {
     }
 
     private fun isSUExist(): Boolean {
-        var process: Process? = null
-        try {
-            process = Runtime.getRuntime().exec(arrayOf<String>("/system/xbin/which", "su"))
-            BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
-                if (reader.readLine() != null) {
-                    return true
+        val whichPaths = listOf("/system/xbin/which", "/system/bin/which", "/bin/which")
+
+        for (whichPath in whichPaths) {
+            var process: Process? = null
+            try {
+                process = Runtime.getRuntime().exec(arrayOf(whichPath, "su"))
+                BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+                    if (reader.readLine() != null) return true
                 }
-            }
-            return false
-        } catch (e: java.lang.Exception) {
-            Log.e(TAG, "Error checking for su binary", e)
-            return false
-        } finally {
-            if (process != null) {
-                process.destroy()
+            } catch (_: Exception) {
+                // Path doesn't exist, try next
+            } finally {
+                process?.destroy()
             }
         }
+
+        // Fallback: use sh -c which
+        var process: Process? = null
+        try {
+            process = Runtime.getRuntime().exec(arrayOf("sh", "-c", "which su"))
+            BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+                if (reader.readLine() != null) return true
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking for su binary via shell", e)
+        } finally {
+            process?.destroy()
+        }
+        return false
     }
 
     private fun isTestBuildKey(): Boolean {
@@ -164,12 +176,10 @@ class RootDetection(context: Context) : DetectorResult(context) {
         }
 
         for (line in lines) {
-            val args = line.split(" ".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-            if (args.size < 4) {
-                continue
-            }
-            val mountPoint = args[1]
-            val mountOptions = args[3]
+            val mountRegex = Regex("""^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)""")
+            val match = mountRegex.find(line) ?: continue
+            val mountPoint = match.groupValues[2]
+            val mountOptions = match.groupValues[4]
 
             for (path in notWritablePath) {
                 if (mountPoint.equals(path, ignoreCase = true)) {
@@ -218,8 +228,9 @@ class RootDetection(context: Context) : DetectorResult(context) {
     }
 
     private fun commander(command: String?): Array<String>? {
+        var process: Process? = null
         try {
-            val process = Runtime.getRuntime().exec(command)
+            process = Runtime.getRuntime().exec(command)
             BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
                 val propVal = reader.readText()
                 return propVal.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
@@ -227,6 +238,8 @@ class RootDetection(context: Context) : DetectorResult(context) {
         } catch (e: java.lang.Exception) {
             Log.e(TAG, "Error executing command: $command", e)
             return null
+        } finally {
+            process?.destroy()
         }
     }
 

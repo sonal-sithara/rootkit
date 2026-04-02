@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 
 @RequiresApi(Build.VERSION_CODES.Q)
+@Suppress("NewApi")
 class AppZygote : ZygotePreload {
 
     companion object {

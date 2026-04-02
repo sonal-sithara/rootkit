@@ -32,6 +32,13 @@ class DebuggerDetection(context: Context) : DetectorResult(context) {
      */
     var includeFridaDetection: Boolean = true
 
+    /**
+     * Whether to treat ADB being enabled as a debugger detection.
+     * Defaults to false since ADB is commonly enabled during development
+     * and on many consumer devices. Set to true for stricter detection.
+     */
+    var treatAdbAsDebugger: Boolean = false
+
     private val fridaDetection by lazy { FridaDetection(context) }
 
     override fun run(): Result {
@@ -39,11 +46,21 @@ class DebuggerDetection(context: Context) : DetectorResult(context) {
         val isDebuggerConnected = Debug.isDebuggerConnected()
 
         // Check if ADB debugging is enabled on the device (broader security signal)
-        val isAdbEnabled = Settings.Secure.getInt(
-            context.contentResolver,
-            Settings.Secure.ADB_ENABLED,
-            0
-        ) == 1
+        // Only checked when treatAdbAsDebugger is true, since ADB is commonly
+        // enabled during development and on many consumer devices.
+        val isAdbEnabled = if (treatAdbAsDebugger) {
+            try {
+                Settings.Secure.getInt(
+                    context.contentResolver,
+                    Settings.Secure.ADB_ENABLED,
+                    0
+                ) == 1
+            } catch (e: Exception) {
+                false
+            }
+        } else {
+            false
+        }
 
         val isFridaDetected = if (includeFridaDetection) {
             try {
@@ -74,13 +91,17 @@ class DebuggerDetection(context: Context) : DetectorResult(context) {
             false
         }
 
-        val isAdbEnabled = try {
-            Settings.Secure.getInt(
-                context.contentResolver,
-                Settings.Secure.ADB_ENABLED,
-                0
-            ) == 1
-        } catch (e: Exception) {
+        val isAdbEnabled = if (treatAdbAsDebugger) {
+            try {
+                Settings.Secure.getInt(
+                    context.contentResolver,
+                    Settings.Secure.ADB_ENABLED,
+                    0
+                ) == 1
+            } catch (e: Exception) {
+                false
+            }
+        } else {
             false
         }
 

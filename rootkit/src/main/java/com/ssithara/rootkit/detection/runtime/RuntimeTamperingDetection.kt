@@ -87,10 +87,10 @@ class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
             }
         }
 
-        val fridaResult = fridaDetection.run()
-        val xposedResult = xposedDetection.run()
-        val memoryResult = memoryTamperingDetection.run()
-        val nativeHookResult = nativeHookDetection.run()
+        val fridaResult = fridaDetection.runSafely()
+        val xposedResult = xposedDetection.runSafely()
+        val memoryResult = memoryTamperingDetection.runSafely()
+        val nativeHookResult = nativeHookDetection.runSafely()
 
         val summary = DetectionSummary(
             fridaDetected = fridaResult == Result.FOUND,

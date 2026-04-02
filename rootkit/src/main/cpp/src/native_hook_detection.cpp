@@ -124,19 +124,26 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectInlineHook
 
     void *libc_handle = dlopen("libc.so", RTLD_NOW);
     if (libc_handle == nullptr) {
-        // Returning -1 to indicate detection failure (dlopen failed)
-        // This is treated as suspicious in Kotlin layer
-        return -1;
+        return JNI_FALSE;
     }
 
     bool detected = false;
 
+    auto maps = parse_proc_maps();
+
     for (int i = 0; i < 5 && !detected; i++) {
         void *func_ptr = dlsym(libc_handle, functions_to_check[i]);
         if (func_ptr != nullptr) {
-            // Note: dlsym returns valid function pointers from libc.so
-            // These are always readable as they are mapped executable code
-            // No need for mincore check which doesn't guarantee safe read access
+            // Verify the function address is in a readable memory region
+            uintptr_t func_addr = (uintptr_t)func_ptr;
+            bool readable = false;
+            for (const auto &entry : maps) {
+                if (func_addr >= entry.start && func_addr < entry.end) {
+                    readable = (entry.line[0] != '\0'); // valid entry found
+                    break;
+                }
+            }
+            if (!readable) continue;
 
 #if defined(__aarch64__)
             // ARM64 detection
@@ -282,22 +289,27 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectGOTHooks(J
 #if defined(__aarch64__) || defined(__x86_64__)
     // 64-bit ELF parsing
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)lib_base;
-    
+
+    // Validate ELF header fields before use
+    if (ehdr->e_phoff == 0 || ehdr->e_phnum == 0 || ehdr->e_phnum > 256) {
+        return JNI_FALSE;
+    }
+
     // Find the dynamic section
     Elf64_Phdr *phdr = (Elf64_Phdr *)(lib_base + ehdr->e_phoff);
     Elf64_Dyn *dyn = nullptr;
-    
+
     for (int i = 0; i < ehdr->e_phnum; i++) {
         if (phdr[i].p_type == PT_DYNAMIC) {
             dyn = (Elf64_Dyn *)(lib_base + phdr[i].p_vaddr);
             break;
         }
     }
-    
+
     if (dyn == nullptr) {
         return JNI_FALSE;
     }
-    
+
     // Find GOT and symbol table
     Elf64_Sym *symtab = nullptr;
     char *strtab = nullptr;
@@ -373,6 +385,11 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectGOTHooks(J
 #else
     // 32-bit ELF parsing (ARM32, x86)
     Elf32_Ehdr *ehdr = (Elf32_Ehdr *) lib_base;
+
+    // Validate ELF header fields before use
+    if (ehdr->e_phoff == 0 || ehdr->e_phnum == 0 || ehdr->e_phnum > 256) {
+        return JNI_FALSE;
+    }
 
     // Find the dynamic section
     Elf32_Phdr *phdr = (Elf32_Phdr *) (lib_base + ehdr->e_phoff);
@@ -498,7 +515,12 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectPLTHooks(J
 #if defined(__aarch64__) || defined(__x86_64__)
     // 64-bit ELF parsing
     Elf64_Ehdr *ehdr = (Elf64_Ehdr *)lib_base;
-    
+
+    // Validate ELF header fields before use
+    if (ehdr->e_phoff == 0 || ehdr->e_phnum == 0 || ehdr->e_phnum > 256) {
+        return JNI_FALSE;
+    }
+
     // Find PLT section
     Elf64_Phdr *phdr = (Elf64_Phdr *)(lib_base + ehdr->e_phoff);
     uintptr_t plt_start = 0;
@@ -553,6 +575,11 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectPLTHooks(J
 #else
     // 32-bit ELF parsing (ARM32, x86)
     Elf32_Ehdr *ehdr = (Elf32_Ehdr *) lib_base;
+
+    // Validate ELF header fields before use
+    if (ehdr->e_phoff == 0 || ehdr->e_phnum == 0 || ehdr->e_phnum > 256) {
+        return JNI_FALSE;
+    }
 
     // Find PLT section
     Elf32_Phdr *phdr = (Elf32_Phdr *) (lib_base + ehdr->e_phoff);
@@ -666,7 +693,7 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectHookFramew
  * @return JNI_TRUE if modified function pointer detected, JNI_FALSE otherwise
  */
 extern "C"
-JNIEXPORT jboolean JNICALL
+JNIEXPORT jint JNICALL
 Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectModifiedFunctionPointers(
         JNIEnv *env, jclass clazz) {
     (void) env;
@@ -674,11 +701,10 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectModifiedFu
 
     // This is a heuristic check for modified function pointers
     // We check if certain standard library functions point to expected locations
+    // Returns: 1 = detected, 0 = not detected, -1 = detection failure
 
     void *libc_handle = dlopen("libc.so", RTLD_NOW);
     if (libc_handle == nullptr) {
-        // Returning -1 to indicate detection failure (dlopen failed)
-        // This is treated as suspicious in Kotlin layer
         return -1;
     }
 
@@ -706,12 +732,12 @@ Java_com_ssithara_rootkit_detection_runtime_NativeHookDetection_detectModifiedFu
                 // Function should be within ~10MB of libc base
                 if (func_addr < libc_base || func_addr > libc_base + (10 * 1024 * 1024)) {
                     dlclose(libc_handle);
-                    return JNI_TRUE;
+                    return 1;
                 }
             }
         }
     }
 
     dlclose(libc_handle);
-    return JNI_FALSE;
+    return 0;
 }

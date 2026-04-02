@@ -89,9 +89,11 @@ class AppVisibilityAwareCheck(
     }
 
     // Stored so attach/detach can be called multiple times safely.
+    @Volatile
     private var isAttached = false
 
     // Captured at attach() time so resetInterval() can restore the original value.
+    @Volatile
     private var originalIntervalMs: Long = 0L
 
     // NO init block — addObserver(this) is intentionally NOT called here.

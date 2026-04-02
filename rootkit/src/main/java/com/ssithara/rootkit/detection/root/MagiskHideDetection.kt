@@ -82,18 +82,23 @@ class MagiskHideDetection(context: Context) : DetectorResult(context) {
     override fun run(): Result {
         var result = Result.NOT_FOUND
         val pm = context.packageManager
-        val intent = Intent(Intent.ACTION_MAIN)
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
 
-        val activities = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.queryIntentActivities(
-                intent, PackageManager.ResolveInfoFlags.of(
-                    PackageManager.MATCH_DIRECT_BOOT_UNAWARE.toLong()
+        val activities = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.queryIntentActivities(
+                    intent, PackageManager.ResolveInfoFlags.of(
+                        PackageManager.MATCH_DIRECT_BOOT_UNAWARE.toLong()
+                    )
                 )
-            )
-        } else {
-            pm.queryIntentActivities(
-                intent, PackageManager.MATCH_DIRECT_BOOT_UNAWARE
-            )
+            } else {
+                pm.queryIntentActivities(
+                    intent, PackageManager.MATCH_DIRECT_BOOT_UNAWARE
+                )
+            }
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Permission denied querying intent activities", e)
+            return result
         }
 
         for (pkg in activities) {

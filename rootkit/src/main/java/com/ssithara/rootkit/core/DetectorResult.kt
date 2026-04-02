@@ -20,8 +20,8 @@ abstract class DetectorResult(protected val context: Context) {
     fun runSafely(): Result {
         return try {
             run()
-        } catch (e: Exception) {
-            Log.e(TAG, "Detection failed with exception: ${e.message}", e)
+        } catch (e: Throwable) {
+            Log.e(TAG, "Detection failed: ${e.javaClass.simpleName}: ${e.message}", e)
             Result.ERROR
         }
     }

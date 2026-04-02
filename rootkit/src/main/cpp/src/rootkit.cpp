@@ -102,31 +102,20 @@ static inline bool is_mountpaths_detected() {
     if (fp == nullptr)
         return false;
 
-    fseek(fp, 0L, SEEK_END);
-    long size = ftell(fp);
-    if (size <= 0)
-        size = 20000;
-
-    fseek(fp, 0L, SEEK_SET);
-
-    char *buffer = new(std::nothrow) char[size + 1];
-    if (buffer == nullptr) {
-        fclose(fp);
-        return false;
+    std::string content;
+    char buf[4096];
+    while (fgets(buf, sizeof(buf), fp) != nullptr) {
+        content.append(buf);
     }
 
-    size_t read = fread(buffer, 1, size, fp);
-    buffer[read] = '\0';  // null-terminate before strstr
+    fclose(fp);
 
     for (int i = 0; i < len; i++) {
-        if (strstr(buffer, blacklistedMountPaths[i]) != nullptr) {
+        if (content.find(blacklistedMountPaths[i]) != std::string::npos) {
             bRet = true;
             break;
         }
     }
-
-    delete[] buffer;
-    fclose(fp);
     return bRet;
 }
 

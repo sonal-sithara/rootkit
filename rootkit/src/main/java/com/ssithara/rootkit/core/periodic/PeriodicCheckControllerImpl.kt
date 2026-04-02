@@ -177,14 +177,6 @@ internal class PeriodicCheckControllerImpl(
         }
     }
 
-    // Cleanup on finalize as safety net
-    @Throws(Throwable::class)
-    protected fun finalize() {
-        if (!disposed.get()) {
-            scope.coroutineContext[Job]?.cancel()
-        }
-    }
-
     private fun startPeriodicChecks() {
         val job = scope.launch {
             // Initial delay
@@ -303,7 +295,7 @@ internal class PeriodicCheckControllerImpl(
             }
         } catch (e: CancellationException) {
             throw e  // Don't catch cancellation
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // Notify error callback on main thread (like other callbacks)
             notifyError(type, e)
 
@@ -332,11 +324,11 @@ internal class PeriodicCheckControllerImpl(
         setThreadPriorityBackground()
 
         val result = when (type) {
-            PeriodicCheckConfig.DetectionType.ROOT -> rootDetection.run()
-            PeriodicCheckConfig.DetectionType.MAGISK -> magiskDetection.run()
-            PeriodicCheckConfig.DetectionType.MAGISK_HIDE -> magiskHideDetection.run()
-            PeriodicCheckConfig.DetectionType.DEBUGGER -> debuggerDetection.run()
-            PeriodicCheckConfig.DetectionType.EMULATOR -> emulatorDetection.run()
+            PeriodicCheckConfig.DetectionType.ROOT -> rootDetection.runSafely()
+            PeriodicCheckConfig.DetectionType.MAGISK -> magiskDetection.runSafely()
+            PeriodicCheckConfig.DetectionType.MAGISK_HIDE -> magiskHideDetection.runSafely()
+            PeriodicCheckConfig.DetectionType.DEBUGGER -> debuggerDetection.runSafely()
+            PeriodicCheckConfig.DetectionType.EMULATOR -> emulatorDetection.runSafely()
             PeriodicCheckConfig.DetectionType.FRIDA -> {
                 if (runtimeTamperingDetection.isFridaDetected()) Result.FOUND else Result.NOT_FOUND
             }
@@ -353,7 +345,7 @@ internal class PeriodicCheckControllerImpl(
                 if (runtimeTamperingDetection.isNativeHookDetected()) Result.FOUND else Result.NOT_FOUND
             }
 
-            PeriodicCheckConfig.DetectionType.RUNTIME_TAMPERING -> runtimeTamperingDetection.run()
+            PeriodicCheckConfig.DetectionType.RUNTIME_TAMPERING -> runtimeTamperingDetection.runSafely()
         }
 
         val encryptedValue = EncryptionService.encryptWithBase64Key(result.name, encryptionKey)

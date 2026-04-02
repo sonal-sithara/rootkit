@@ -2,6 +2,7 @@ package com.ssithara.rootkit
 
 import android.content.Context
 import android.util.Base64
+import android.util.Log
 import com.ssithara.rootkit.core.EncryptionService
 import com.ssithara.rootkit.core.Result
 import com.ssithara.rootkit.core.periodic.PeriodicCheckConfig
@@ -143,11 +144,10 @@ class RootKit(context: Context) {
      */
     @Throws(IllegalStateException::class, UnsatisfiedLinkError::class)
     fun initialize() {
-        if (isInitialized.get()) {
+        if (!isInitialized.compareAndSet(false, true)) {
             throw IllegalStateException("RootKit is already initialized")
         }
         loadLibraryOnce()
-        isInitialized.set(true)
     }
 
     /**
@@ -184,11 +184,10 @@ class RootKit(context: Context) {
      */
     @Throws(IllegalStateException::class, UnsatisfiedLinkError::class)
     fun initialize(config: PeriodicCheckConfig): PeriodicCheckController {
-        if (isInitialized.get()) {
+        if (!isInitialized.compareAndSet(false, true)) {
             throw IllegalStateException("RootKit is already initialized")
         }
         loadLibraryOnce()
-        isInitialized.set(true)
         return PeriodicCheckControllerImpl(context, config, sessionKey)
     }
 
@@ -288,10 +287,12 @@ class RootKit(context: Context) {
      */
     fun isFridaDetected(): String {
         checkInitialized()
-        val result = if (runtimeTamperingDetection.isFridaDetected())
-            Result.FOUND
-        else
-            Result.NOT_FOUND
+        val result = try {
+            if (runtimeTamperingDetection.isFridaDetected()) Result.FOUND else Result.NOT_FOUND
+        } catch (e: Throwable) {
+            Log.e(TAG, "Frida detection failed: ${e.message}", e)
+            Result.ERROR
+        }
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
@@ -300,10 +301,12 @@ class RootKit(context: Context) {
      */
     fun isXposedDetected(): String {
         checkInitialized()
-        val result = if (runtimeTamperingDetection.isXposedDetected())
-            Result.FOUND
-        else
-            Result.NOT_FOUND
+        val result = try {
+            if (runtimeTamperingDetection.isXposedDetected()) Result.FOUND else Result.NOT_FOUND
+        } catch (e: Throwable) {
+            Log.e(TAG, "Xposed detection failed: ${e.message}", e)
+            Result.ERROR
+        }
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
@@ -312,10 +315,12 @@ class RootKit(context: Context) {
      */
     fun isMemoryTamperingDetected(): String {
         checkInitialized()
-        val result = if (runtimeTamperingDetection.isMemoryTamperingDetected())
-            Result.FOUND
-        else
-            Result.NOT_FOUND
+        val result = try {
+            if (runtimeTamperingDetection.isMemoryTamperingDetected()) Result.FOUND else Result.NOT_FOUND
+        } catch (e: Throwable) {
+            Log.e(TAG, "Memory tampering detection failed: ${e.message}", e)
+            Result.ERROR
+        }
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
@@ -324,10 +329,12 @@ class RootKit(context: Context) {
      */
     fun isNativeHookDetected(): String {
         checkInitialized()
-        val result = if (runtimeTamperingDetection.isNativeHookDetected())
-            Result.FOUND
-        else
-            Result.NOT_FOUND
+        val result = try {
+            if (runtimeTamperingDetection.isNativeHookDetected()) Result.FOUND else Result.NOT_FOUND
+        } catch (e: Throwable) {
+            Log.e(TAG, "Native hook detection failed: ${e.message}", e)
+            Result.ERROR
+        }
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
@@ -339,15 +346,25 @@ class RootKit(context: Context) {
      */
     fun getRuntimeTamperingDetails(): Map<String, Map<String, Any?>> {
         checkInitialized()
-        return runtimeTamperingDetection.getComprehensiveDetectionDetails()
+        return try {
+            runtimeTamperingDetection.getComprehensiveDetectionDetails()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to get runtime tampering details: ${e.message}", e)
+            emptyMap()
+        }
     }
 
     /**
      * Get a summary of runtime tampering detections.
      */
-    fun getRuntimeTamperingSummary(): RuntimeTamperingDetection.DetectionSummary {
+    fun getRuntimeTamperingSummary(): RuntimeTamperingDetection.DetectionSummary? {
         checkInitialized()
-        return runtimeTamperingDetection.getDetectionSummary()
+        return try {
+            runtimeTamperingDetection.getDetectionSummary()
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to get runtime tampering summary: ${e.message}", e)
+            null
+        }
     }
 
     /**
@@ -364,5 +381,9 @@ class RootKit(context: Context) {
     fun getDebuggerDetails(): Map<String, Boolean> {
         checkInitialized()
         return debuggerDetection.getDetectionDetails()
+    }
+
+    companion object {
+        private const val TAG = "RootKit"
     }
 }
