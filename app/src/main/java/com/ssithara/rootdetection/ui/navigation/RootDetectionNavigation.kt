@@ -11,14 +11,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.ssithara.rootdetection.ui.model.DetectionCategory
 import com.ssithara.rootdetection.ui.model.EnvironmentCheckType
@@ -58,8 +56,9 @@ fun RootDetectionNavigation(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController()
 ) {
-    // Track current route as a simple String - never null, defaults to dashboard
-    var currentRoute by remember { mutableStateOf(ROUTE_DASHBOARD) }
+    // Track current route from NavController's back stack
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route ?: ROUTE_DASHBOARD
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -67,7 +66,6 @@ fun RootDetectionNavigation(
             RootDetectionBottomBar(
                 currentRoute = currentRoute,
                 onNavigate = { route ->
-                    currentRoute = route
                     navController.navigate(route) {
                         popUpTo(ROUTE_DASHBOARD) {
                             saveState = true
@@ -95,7 +93,6 @@ fun RootDetectionNavigation(
                             DetectionCategory.RUNTIME -> ROUTE_RUNTIME
                             DetectionCategory.ENVIRONMENT -> ROUTE_ENVIRONMENT
                         }
-                        currentRoute = route
                         navController.navigate(route) {
                             popUpTo(ROUTE_DASHBOARD) {
                                 saveState = true

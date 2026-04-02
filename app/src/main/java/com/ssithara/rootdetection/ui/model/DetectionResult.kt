@@ -27,7 +27,7 @@ sealed class DetectionResult {
     data class Complete(
         val result: com.ssithara.rootkit.core.Result,
         val timestamp: Long = System.currentTimeMillis(),
-        val details: Map<String, Boolean>? = null
+        val details: Map<String, Any?>? = null
     ) : DetectionResult()
     
     /**

@@ -219,28 +219,57 @@ class RootKit(context: Context) {
     fun isRootedDevice(): String {
         checkInitialized()
         val detections = listOf(
-            magiskHideDetection.run(),
-            magiskDetection.run(),
-            rootDetection.run()
+            magiskHideDetection.runSafely(),
+            magiskDetection.runSafely(),
+            rootDetection.runSafely()
         )
 
         val isRooted = if (Result.FOUND in detections)
             Result.FOUND
+        else if (Result.ERROR in detections)
+            Result.ERROR
         else
             Result.NOT_FOUND
 
         return EncryptionService.encryptWithBase64Key(isRooted.name, sessionKey)
     }
 
+    /**
+     * Individual root detection (binaries, SU commands, root management apps).
+     */
+    fun isRootDetected(): String {
+        checkInitialized()
+        val result = rootDetection.runSafely()
+        return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
+    }
+
+    /**
+     * Individual Magisk framework detection.
+     */
+    fun isMagiskDetected(): String {
+        checkInitialized()
+        val result = magiskDetection.runSafely()
+        return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
+    }
+
+    /**
+     * Individual MagiskHide/DenyList stub detection.
+     */
+    fun isMagiskHideDetected(): String {
+        checkInitialized()
+        val result = magiskHideDetection.runSafely()
+        return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
+    }
+
     fun isDebuggerDetected(): String {
         checkInitialized()
-        val result = debuggerDetection.run()
+        val result = debuggerDetection.runSafely()
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
     fun isEmulatorDevice(): String {
         checkInitialized()
-        val result = emulatorDetection.run()
+        val result = emulatorDetection.runSafely()
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
@@ -250,7 +279,7 @@ class RootKit(context: Context) {
      */
     fun isRuntimeTamperingDetected(): String {
         checkInitialized()
-        val result = runtimeTamperingDetection.run()
+        val result = runtimeTamperingDetection.runSafely()
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 

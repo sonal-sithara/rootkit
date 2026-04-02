@@ -144,8 +144,14 @@ private fun formatTimestamp(timestamp: Long): String {
 
     return when {
         diff < 60_000 -> "Just now"
-        diff < 3600_000 -> "${diff / 60_000} min ago"
-        diff < 86400_000 -> "${diff / 3600_000} hours ago"
+        diff < 3600_000 -> {
+            val mins = diff / 60_000
+            if (mins == 1L) "1 min ago" else "$mins min ago"
+        }
+        diff < 86400_000 -> {
+            val hours = diff / 3600_000
+            if (hours == 1L) "1 hour ago" else "$hours hours ago"
+        }
         else -> {
             val sdf = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
             sdf.format(Date(timestamp))

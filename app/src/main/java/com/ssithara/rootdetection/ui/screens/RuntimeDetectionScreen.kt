@@ -101,19 +101,20 @@ fun RuntimeDetectionScreen(
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Frida Detection
+            // Frida Detection - only show details after scan completes
             val fridaDetails = (runtimeState.fridaDetection as? DetectionResult.Complete)?.details
             DetectionResultItem(
                 name = "Frida Detection",
                 description = "Detects Frida instrumentation framework",
                 result = runtimeState.fridaDetection,
-                details = fridaDetails ?: getDefaultFridaDetails(),
+                details = fridaDetails,
                 category = "frida",
                 isExpanded = expandedFrida,
                 onExpandToggle = {
                     expandedFrida = !expandedFrida
                     onExpandCheck(RuntimeCheckType.FRIDA)
-                }
+                },
+                onRunClick = { onRunIndividualCheck(RuntimeCheckType.FRIDA) }
             )
 
             // Xposed Detection
@@ -122,13 +123,14 @@ fun RuntimeDetectionScreen(
                 name = "Xposed Detection",
                 description = "Detects Xposed/LSPosed framework",
                 result = runtimeState.xposedDetection,
-                details = xposedDetails ?: getDefaultXposedDetails(),
+                details = xposedDetails,
                 category = "xposed",
                 isExpanded = expandedXposed,
                 onExpandToggle = {
                     expandedXposed = !expandedXposed
                     onExpandCheck(RuntimeCheckType.XPOSED)
-                }
+                },
+                onRunClick = { onRunIndividualCheck(RuntimeCheckType.XPOSED) }
             )
 
             // Native Hook Detection
@@ -137,13 +139,14 @@ fun RuntimeDetectionScreen(
                 name = "Native Hook Detection",
                 description = "Detects PLT/GOT hooks and inline hooks",
                 result = runtimeState.nativeHookDetection,
-                details = hookDetails ?: getDefaultNativeHookDetails(),
+                details = hookDetails,
                 category = "native_hook",
                 isExpanded = expandedNativeHook,
                 onExpandToggle = {
                     expandedNativeHook = !expandedNativeHook
                     onExpandCheck(RuntimeCheckType.NATIVE_HOOK)
-                }
+                },
+                onRunClick = { onRunIndividualCheck(RuntimeCheckType.NATIVE_HOOK) }
             )
 
             // Memory Tampering Detection
@@ -152,13 +155,14 @@ fun RuntimeDetectionScreen(
                 name = "Memory Tampering",
                 description = "Detects memory modifications and code injection",
                 result = runtimeState.memoryTamperingDetection,
-                details = memoryDetails ?: getDefaultMemoryDetails(),
+                details = memoryDetails,
                 category = "memory_tampering",
                 isExpanded = expandedMemory,
                 onExpandToggle = {
                     expandedMemory = !expandedMemory
                     onExpandCheck(RuntimeCheckType.MEMORY_TAMPERING)
-                }
+                },
+                onRunClick = { onRunIndividualCheck(RuntimeCheckType.MEMORY_TAMPERING) }
             )
         }
 
@@ -170,7 +174,7 @@ fun RuntimeDetectionScreen(
 }
 
 // Default detail structures for preview purposes
-private fun getDefaultFridaDetails() = mapOf(
+internal fun getDefaultFridaDetails() = mapOf<String, Any?>(
     "port_detection" to false,
     "memory_maps_detection" to false,
     "thread_detection" to false,
@@ -179,7 +183,7 @@ private fun getDefaultFridaDetails() = mapOf(
     "env_var_detection" to false
 )
 
-private fun getDefaultXposedDetails() = mapOf(
+internal fun getDefaultXposedDetails() = mapOf<String, Any?>(
     "stack_trace_detection" to false,
     "package_detection" to false,
     "loaded_classes_detection" to false,
@@ -191,7 +195,7 @@ private fun getDefaultXposedDetails() = mapOf(
     "hook_memory_detection" to false
 )
 
-private fun getDefaultNativeHookDetails() = mapOf(
+internal fun getDefaultNativeHookDetails() = mapOf<String, Any?>(
     "inline_hook_detection" to false,
     "got_hook_detection" to false,
     "plt_hook_detection" to false,
@@ -199,7 +203,7 @@ private fun getDefaultNativeHookDetails() = mapOf(
     "modified_function_pointer_detection" to false
 )
 
-private fun getDefaultMemoryDetails() = mapOf(
+internal fun getDefaultMemoryDetails() = mapOf<String, Any?>(
     "suspicious_regions_detection" to false,
     "anonymous_exec_memory_detection" to false,
     "code_integrity_detection" to false,
@@ -273,7 +277,7 @@ fun RuntimeDetectionScreenInsecurePreview() {
                 isScanning = false,
                 fridaDetection = DetectionResult.Complete(
                     result = Result.FOUND,
-                    details = mapOf(
+                    details = mapOf<String, Any?>(
                         "port_detection" to true,
                         "memory_maps_detection" to true,
                         "library_detection" to false,

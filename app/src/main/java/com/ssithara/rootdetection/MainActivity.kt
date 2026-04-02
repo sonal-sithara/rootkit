@@ -25,8 +25,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Load the native library
-        System.loadLibrary("rootkit")
+        // RootKit.initialize() handles native library loading with double-checked locking
+        // No need to load the library manually here
 
         enableEdgeToEdge()
 

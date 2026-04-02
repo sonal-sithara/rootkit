@@ -1,21 +1,41 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Preserve line numbers for crash reports
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# RootKit library - keep all public API classes
+-keep class com.ssithara.rootkit.RootKit { public *; }
+-keep class com.ssithara.rootkit.core.Result { *; }
+-keep class com.ssithara.rootkit.core.PeriodicCheckConfig$* { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# JNI native methods
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Encryption service - keep AES key handling
+-keep class com.ssithara.rootkit.core.EncryptionService { *; }
+-keep class com.ssithara.rootkit.data.EncryptionService { *; }
+
+# Detector result base classes
+-keep class com.ssithara.rootkit.core.DetectorResult { *; }
+-keep,allowobfuscation class * extends com.ssithara.rootkit.core.DetectorResult {
+    public <methods>;
+}
+
+# ViewModels
+-keepclassmembers class * extends androidx.lifecycle.ViewModel {
+    <init>(...);
+}
+
+# Compose
+-dontwarn androidx.compose.**
+
+# Kotlin coroutines
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+
+# RootBeer library
+-keep class com.scottyab.rootbeer.** { *; }
+
+# Xposed detector (prefab)
+-keep class io.github.vvb2060.ndk.** { *; }

@@ -38,7 +38,7 @@ import com.ssithara.rootkit.core.Result
  * @param environmentState The current environment detection state
  * @param onRunAllChecks Callback when "Run All Checks" button is clicked
  * @param onRunIndividualCheck Callback when an individual check's run button is clicked
- * @param onExpandCheck Callback when a check is expanded (for future use, e.g., tracking expanded state)
+ * @param onExpandCheck Callback when a check is expanded
  * @param modifier Optional modifier
  */
 @Composable
@@ -98,19 +98,20 @@ fun EnvironmentDetectionScreen(
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Emulator Detection
+            // Emulator Detection - only show details after scan completes
             val emulatorDetails = (environmentState.emulatorDetection as? DetectionResult.Complete)?.details
             DetectionResultItem(
                 name = "Emulator Detection",
                 description = "Detects if the app is running on an Android emulator",
                 result = environmentState.emulatorDetection,
-                details = emulatorDetails ?: getDefaultEmulatorDetails(),
+                details = emulatorDetails,
                 isExpanded = expandedEmulator,
                 category = "emulator",
                 onExpandToggle = {
                     expandedEmulator = !expandedEmulator
                     onExpandCheck(EnvironmentCheckType.EMULATOR)
-                }
+                },
+                onRunClick = { onRunIndividualCheck(EnvironmentCheckType.EMULATOR) }
             )
 
             // Debugger Detection
@@ -119,13 +120,14 @@ fun EnvironmentDetectionScreen(
                 name = "Debugger Detection",
                 description = "Detects if a debugger is attached to the app",
                 result = environmentState.debuggerDetection,
-                details = debuggerDetails ?: getDefaultDebuggerDetails(),
+                details = debuggerDetails,
                 isExpanded = expandedDebugger,
                 category = "debugger",
                 onExpandToggle = {
                     expandedDebugger = !expandedDebugger
                     onExpandCheck(EnvironmentCheckType.DEBUGGER)
-                }
+                },
+                onRunClick = { onRunIndividualCheck(EnvironmentCheckType.DEBUGGER) }
             )
         }
 
@@ -137,12 +139,12 @@ fun EnvironmentDetectionScreen(
 }
 
 // Default detail structures for preview purposes
-private fun getDefaultEmulatorDetails() = mapOf(
+internal fun getDefaultEmulatorDetails() = mapOf<String, Any?>(
     "device_model_check" to false,
     "emulator_files_check" to false
 )
 
-private fun getDefaultDebuggerDetails() = mapOf(
+internal fun getDefaultDebuggerDetails() = mapOf<String, Any?>(
     "adb_enabled_check" to false,
     "frida_detection_check" to false
 )
@@ -204,7 +206,7 @@ fun EnvironmentDetectionScreenInsecurePreview() {
                 isScanning = false,
                 emulatorDetection = DetectionResult.Complete(
                     result = Result.FOUND,
-                    details = mapOf(
+                    details = mapOf<String, Any?>(
                         "device_model_check" to true,
                         "emulator_files_check" to true
                     )

@@ -8,8 +8,17 @@ android {
     namespace = "com.ssithara.rootdetection"
     compileSdk = 35
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("keystore/release.jks")
+            storePassword = "rootkit2024"
+            keyAlias = "release"
+            keyPassword = "rootkit2024"
+        }
+    }
+
     defaultConfig {
-        applicationId = "com.ssithara.rootdetection"
+        applicationId = "com.sonal.rootkit"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -19,8 +28,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -35,7 +50,6 @@ android {
         jvmTarget = "11"
     }
     buildFeatures {
-        viewBinding = true
         compose = true
     }
 }
@@ -43,12 +57,7 @@ android {
 dependencies {
 
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.material)
     implementation(project(":rootkit"))
-    implementation(libs.androidx.constraintlayout)
-    implementation(libs.androidx.navigation.fragment.ktx)
-    implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -57,20 +66,19 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
-    
+
     // Material Icons Extended (for Security, BugReport, Devices icons)
     implementation(libs.androidx.compose.material.icons.extended)
-    
+
     // Navigation Compose
     implementation(libs.androidx.navigation.compose)
-    
+
     // Lifecycle & ViewModel Compose
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.navigation.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

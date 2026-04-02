@@ -13,6 +13,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +38,11 @@ fun RootDetectionScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+
+    // Track expanded states for each check
+    var expandedRoot by remember { mutableStateOf(false) }
+    var expandedMagisk by remember { mutableStateOf(false) }
+    var expandedMagiskHide by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -79,30 +88,39 @@ fun RootDetectionScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Root Detection
+            val rootDetails = (rootState.rootDetection as? DetectionResult.Complete)?.details
             DetectionResultItem(
                 name = "Root Detection",
                 description = "Checks for root binaries, SU commands, and root management apps",
                 result = rootState.rootDetection,
-                details = null,
-                isExpanded = false
+                details = rootDetails,
+                isExpanded = expandedRoot,
+                onExpandToggle = { expandedRoot = !expandedRoot },
+                onRunClick = { onRunIndividualCheck(RootCheckType.ROOT_DETECTION) }
             )
 
             // Magisk Detection
+            val magiskDetails = (rootState.magiskDetection as? DetectionResult.Complete)?.details
             DetectionResultItem(
                 name = "Magisk Detection",
                 description = "Detects Magisk framework installation and files",
                 result = rootState.magiskDetection,
-                details = null,
-                isExpanded = false
+                details = magiskDetails,
+                isExpanded = expandedMagisk,
+                onExpandToggle = { expandedMagisk = !expandedMagisk },
+                onRunClick = { onRunIndividualCheck(RootCheckType.MAGISK_DETECTION) }
             )
 
             // MagiskHide Detection
+            val magiskHideDetails = (rootState.magiskHideDetection as? DetectionResult.Complete)?.details
             DetectionResultItem(
                 name = "MagiskHide Detection",
                 description = "Detects MagiskHide/DenyList stubs and configuration",
                 result = rootState.magiskHideDetection,
-                details = null,
-                isExpanded = false
+                details = magiskHideDetails,
+                isExpanded = expandedMagiskHide,
+                onExpandToggle = { expandedMagiskHide = !expandedMagiskHide },
+                onRunClick = { onRunIndividualCheck(RootCheckType.MAGISKHIDE_DETECTION) }
             )
         }
 

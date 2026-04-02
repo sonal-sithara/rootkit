@@ -59,7 +59,7 @@ fun DetectionResultItem(
     name: String,
     description: String,
     result: DetectionResult,
-    details: Map<String, Boolean>? = null,
+    details: Map<String, Any?>? = null,
     category: String? = null,
     isExpanded: Boolean = false,
     onExpandToggle: () -> Unit = {},
@@ -143,12 +143,13 @@ fun DetectionResultItem(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         
-                        detailMap.forEach { (checkName, isDetected) ->
+                        detailMap.forEach { (checkName, value) ->
                              val detectionInfo = if (category != null) {
                                  DetectionInfoMapper.mapKeyName(checkName, category)
                              } else {
                                  DetectionInfo(checkName, "")
                              }
+                             val isDetected = value as? Boolean ?: false
                              DetailCheckRow(
                                  detectionInfo = detectionInfo,
                                  isDetected = isDetected

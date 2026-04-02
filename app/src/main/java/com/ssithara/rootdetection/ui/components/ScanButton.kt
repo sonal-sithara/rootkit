@@ -33,11 +33,7 @@ import com.ssithara.rootdetection.ui.theme.SecureGreen
 
 /**
  * An animated scan button component that shows loading state during scans.
- *
- * @param isScanning Whether a scan is currently in progress
- * @param onClick Callback when the button is clicked
- * @param text The text to display on the button
- * @param modifier Optional modifier
+ * The infinite rotation animation only runs when [isScanning] is true.
  */
 @Composable
 fun ScanButton(
@@ -96,11 +92,6 @@ fun ScanButton(
 
 /**
  * An outlined scan button variant for individual category scans.
- *
- * @param isScanning Whether a scan is currently in progress
- * @param onClick Callback when the button is clicked
- * @param text The text to display on the button
- * @param modifier Optional modifier
  */
 @Composable
 fun OutlinedScanButton(
@@ -109,17 +100,6 @@ fun OutlinedScanButton(
     text: String = "Scan",
     modifier: Modifier = Modifier
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "rotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation"
-    )
-
     OutlinedButton(
         onClick = onClick,
         enabled = !isScanning,
@@ -129,21 +109,11 @@ fun OutlinedScanButton(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isScanning) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(18.dp)
-                        .rotate(rotation)
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = if (isScanning) "Scanning..." else text,
@@ -155,10 +125,6 @@ fun OutlinedScanButton(
 
 /**
  * A compact icon-only scan button.
- *
- * @param isScanning Whether a scan is currently in progress
- * @param onClick Callback when the button is clicked
- * @param modifier Optional modifier
  */
 @Composable
 fun CompactScanButton(
@@ -166,37 +132,16 @@ fun CompactScanButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "rotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation"
-    )
-
     OutlinedButton(
         onClick = onClick,
         enabled = !isScanning,
         modifier = modifier
     ) {
-        if (isScanning) {
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = "Scanning",
-                modifier = Modifier
-                    .size(18.dp)
-                    .rotate(rotation)
-            )
-        } else {
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = "Run scan",
-                modifier = Modifier.size(18.dp)
-            )
-        }
+        Icon(
+            imageVector = Icons.Default.Refresh,
+            contentDescription = if (isScanning) "Scanning" else "Run scan",
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
 

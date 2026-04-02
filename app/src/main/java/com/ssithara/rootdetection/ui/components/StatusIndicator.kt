@@ -197,22 +197,25 @@ private fun ResultIndicator(
     val (backgroundColor, icon) = when (result) {
         Result.FOUND -> InsecureRed to Icons.Default.Close
         Result.NOT_FOUND -> SecureGreen to Icons.Default.Check
+        Result.ERROR -> WarningOrange to Icons.Default.Warning
     }
 
-    val infiniteTransition = rememberInfiniteTransition(label = "scale")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
-    )
-
+    // Only pulse for FOUND results when animated
     val animatedScale = if (animated && result == Result.FOUND) {
+        val infiniteTransition = rememberInfiniteTransition(label = "scale")
+        val scale by infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 1.05f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(500, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "scale"
+        )
         scale
-    } else 1f
+    } else {
+        1f
+    }
 
     Box(
         modifier = modifier

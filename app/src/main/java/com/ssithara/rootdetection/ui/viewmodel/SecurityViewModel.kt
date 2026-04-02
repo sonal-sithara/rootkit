@@ -10,10 +10,12 @@ import com.ssithara.rootdetection.ui.model.RootCheckType
 import com.ssithara.rootdetection.ui.model.RuntimeCheckType
 import com.ssithara.rootdetection.ui.model.SecurityState
 import com.ssithara.rootdetection.ui.model.SecurityStatus
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
 /**
@@ -34,6 +36,7 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
 
     /**
      * Run a full security scan covering all detection categories.
+     * Uses coroutineScope to ensure isScanning remains true until all child checks complete.
      */
     fun runFullScan() {
         viewModelScope.launch {
@@ -44,12 +47,15 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
                 )
             }
 
-            // Run all categories in parallel
-            runRootDetections()
-            runRuntimeDetections()
-            runEnvironmentDetections()
+            // Run all categories in parallel and wait for all to complete
+            coroutineScope {
+                val rootJob = launch { performRootDetections() }
+                val runtimeJob = launch { performRuntimeDetections() }
+                val envJob = launch { performEnvironmentDetections() }
+                joinAll(rootJob, runtimeJob, envJob)
+            }
 
-            // Calculate final status
+            // Calculate final status only after all checks complete
             _uiState.update { currentState ->
                 currentState.copy(
                     isScanning = false,
@@ -61,93 +67,108 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
     }
 
     /**
-     * Run all root detection checks.
+     * Run all root detection checks as suspend functions (no internal launch).
+     */
+    private suspend fun performRootDetections() {
+        _uiState.update { currentState ->
+            currentState.copy(
+                rootState = currentState.rootState.copy(isScanning = true)
+            )
+        }
+
+        val rootResult = repository.checkRoot()
+        val magiskResult = repository.checkMagisk()
+        val magiskHideResult = repository.checkMagiskHide()
+
+        _uiState.update { currentState ->
+            currentState.copy(
+                rootState = currentState.rootState.copy(
+                    isScanning = false,
+                    rootDetection = rootResult,
+                    magiskDetection = magiskResult,
+                    magiskHideDetection = magiskHideResult
+                )
+            )
+        }
+
+        updateOverallStatus()
+    }
+
+    /**
+     * Run all runtime tampering detection checks as suspend functions.
+     */
+    private suspend fun performRuntimeDetections() {
+        _uiState.update { currentState ->
+            currentState.copy(
+                runtimeState = currentState.runtimeState.copy(isScanning = true)
+            )
+        }
+
+        val fridaResult = repository.checkFrida()
+        val xposedResult = repository.checkXposed()
+        val nativeHookResult = repository.checkNativeHook()
+        val memoryTamperingResult = repository.checkMemoryTampering()
+
+        _uiState.update { currentState ->
+            currentState.copy(
+                runtimeState = currentState.runtimeState.copy(
+                    isScanning = false,
+                    fridaDetection = fridaResult,
+                    xposedDetection = xposedResult,
+                    nativeHookDetection = nativeHookResult,
+                    memoryTamperingDetection = memoryTamperingResult
+                )
+            )
+        }
+
+        updateOverallStatus()
+    }
+
+    /**
+     * Run all environment detection checks as suspend functions.
+     */
+    private suspend fun performEnvironmentDetections() {
+        _uiState.update { currentState ->
+            currentState.copy(
+                environmentState = currentState.environmentState.copy(isScanning = true)
+            )
+        }
+
+        val emulatorResult = repository.checkEmulator()
+        val debuggerResult = repository.checkDebugger()
+
+        _uiState.update { currentState ->
+            currentState.copy(
+                environmentState = currentState.environmentState.copy(
+                    isScanning = false,
+                    emulatorDetection = emulatorResult,
+                    debuggerDetection = debuggerResult
+                )
+            )
+        }
+
+        updateOverallStatus()
+    }
+
+    /**
+     * Run all root detection checks (public - for individual category scan).
      */
     fun runRootDetections() {
-        viewModelScope.launch {
-            _uiState.update { currentState ->
-                currentState.copy(
-                    rootState = currentState.rootState.copy(isScanning = true)
-                )
-            }
-
-            val rootResult = repository.checkRoot()
-
-            _uiState.update { currentState ->
-                currentState.copy(
-                    rootState = currentState.rootState.copy(
-                        isScanning = false,
-                        rootDetection = rootResult,
-                        magiskDetection = rootResult, // Combined in isRootedDevice
-                        magiskHideDetection = rootResult // Combined in isRootedDevice
-                    )
-                )
-            }
-
-            updateOverallStatus()
-        }
+        viewModelScope.launch { performRootDetections() }
     }
 
     /**
-     * Run all runtime tampering detection checks.
+     * Run all runtime tampering detection checks (public - for individual category scan).
      */
     fun runRuntimeDetections() {
-        viewModelScope.launch {
-            _uiState.update { currentState ->
-                currentState.copy(
-                    runtimeState = currentState.runtimeState.copy(isScanning = true)
-                )
-            }
-
-            // Run all runtime checks
-            val fridaResult = repository.checkFrida()
-            val xposedResult = repository.checkXposed()
-            val nativeHookResult = repository.checkNativeHook()
-            val memoryTamperingResult = repository.checkMemoryTampering()
-
-            _uiState.update { currentState ->
-                currentState.copy(
-                    runtimeState = currentState.runtimeState.copy(
-                        isScanning = false,
-                        fridaDetection = fridaResult,
-                        xposedDetection = xposedResult,
-                        nativeHookDetection = nativeHookResult,
-                        memoryTamperingDetection = memoryTamperingResult
-                    )
-                )
-            }
-
-            updateOverallStatus()
-        }
+        viewModelScope.launch { performRuntimeDetections() }
     }
 
     /**
-     * Run all environment detection checks.
+     * Run all environment detection checks (public - for individual category scan).
      */
     fun runEnvironmentDetections() {
-        viewModelScope.launch {
-            _uiState.update { currentState ->
-                currentState.copy(
-                    environmentState = currentState.environmentState.copy(isScanning = true)
-                )
-            }
-
-            // Run all environment checks
-            val emulatorResult = repository.checkEmulator()
-            val debuggerResult = repository.checkDebugger()
-
-            _uiState.update { currentState ->
-                currentState.copy(
-                    environmentState = currentState.environmentState.copy(
-                        isScanning = false,
-                        emulatorDetection = emulatorResult,
-                        debuggerDetection = debuggerResult
-                    )
-                )
-            }
-
-            updateOverallStatus()
-        }
+        viewModelScope.launch { performEnvironmentDetections() }
     }
 
     /**
@@ -155,7 +176,6 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
      */
     fun runRootCheck(checkType: RootCheckType) {
         viewModelScope.launch {
-            // Set scanning state for the specific check
             _uiState.update { currentState ->
                 val updatedRootState = when (checkType) {
                     RootCheckType.ROOT_DETECTION -> currentState.rootState.copy(
@@ -171,10 +191,8 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
                 currentState.copy(rootState = updatedRootState)
             }
 
-            // Run the check
             val result = repository.runRootCheck(checkType)
 
-            // Update with result
             _uiState.update { currentState ->
                 val updatedRootState = when (checkType) {
                     RootCheckType.ROOT_DETECTION -> currentState.rootState.copy(
@@ -199,7 +217,6 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
      */
     fun runRuntimeCheck(checkType: RuntimeCheckType) {
         viewModelScope.launch {
-            // Set scanning state for the specific check
             _uiState.update { currentState ->
                 val updatedRuntimeState = when (checkType) {
                     RuntimeCheckType.FRIDA -> currentState.runtimeState.copy(
@@ -218,10 +235,8 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
                 currentState.copy(runtimeState = updatedRuntimeState)
             }
 
-            // Run the check
             val result = repository.runRuntimeCheck(checkType)
 
-            // Update with result
             _uiState.update { currentState ->
                 val updatedRuntimeState = when (checkType) {
                     RuntimeCheckType.FRIDA -> currentState.runtimeState.copy(
@@ -249,7 +264,6 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
      */
     fun runEnvironmentCheck(checkType: EnvironmentCheckType) {
         viewModelScope.launch {
-            // Set scanning state for the specific check
             _uiState.update { currentState ->
                 val updatedEnvState = when (checkType) {
                     EnvironmentCheckType.EMULATOR -> currentState.environmentState.copy(
@@ -262,10 +276,8 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
                 currentState.copy(environmentState = updatedEnvState)
             }
 
-            // Run the check
             val result = repository.runEnvironmentCheck(checkType)
 
-            // Update with result
             _uiState.update { currentState ->
                 val updatedEnvState = when (checkType) {
                     EnvironmentCheckType.EMULATOR -> currentState.environmentState.copy(
@@ -301,18 +313,23 @@ class SecurityViewModel(application: Application) : AndroidViewModel(application
 
     /**
      * Toggle expansion of an environment check to show/hide details.
-     * This is for future use if we want to track expanded state in ViewModel.
      */
     fun toggleEnvironmentCheckExpansion(checkType: EnvironmentCheckType) {
-        // Just update expansion state, don't re-run the check
-        // This is for future use if we want to track expanded state in ViewModel
+        // Environment expand state is tracked locally in the screen composable.
+    }
+
+    /**
+     * Toggle expansion of a root check to show/hide details.
+     */
+    fun toggleRootCheckExpansion(checkType: RootCheckType) {
+        // Root expand state is tracked locally in the screen composable.
     }
 
     /**
      * Reset all detection results to idle state.
      */
     fun resetAllDetections() {
-        _uiState.value = SecurityState()
+        _uiState.update { SecurityState() }
     }
 
     /**
