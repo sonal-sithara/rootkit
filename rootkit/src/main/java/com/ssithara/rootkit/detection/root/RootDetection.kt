@@ -19,10 +19,6 @@ import java.util.Locale
 
 class RootDetection(context: Context) : DetectorResult(context) {
 
-    private val ONEPLUS = "oneplus"
-    private val MOTO = "moto"
-    private val XIAOMI = "xiaomi"
-
     override fun run(): Result {
         var detected: Result = Result.NOT_FOUND
 
@@ -115,28 +111,24 @@ class RootDetection(context: Context) : DetectorResult(context) {
     }
 
     private fun isTestBuildKey(): Boolean {
-        val buildTags = Build.TAGS
-        if (buildTags != null && buildTags.contains("test-keys")) {
-            return true
-        }
-        return false
+        return Build.TAGS.contains("test-keys")
     }
 
     private fun isHaveDangerousApps(): Boolean {
         val packages = ArrayList<String>()
-        packages.addAll(dangerousListApps.filterNotNull())
+        packages.addAll(dangerousListApps)
         return isAnyPackageFromListInstalled(packages)
     }
 
     private fun isHaveRootManagementApps(): Boolean {
         val packages = ArrayList<String>()
-        packages.addAll(rootsAppPackage.filterNotNull())
+        packages.addAll(rootsAppPackage)
         return isAnyPackageFromListInstalled(packages)
     }
 
     private fun isHaveRootHideApps(): Boolean {
         val packages = ArrayList<String>()
-        packages.addAll(rootCloakingApps.filterNotNull())
+        packages.addAll(rootCloakingApps)
         return isAnyPackageFromListInstalled(packages)
     }
 
@@ -230,7 +222,7 @@ class RootDetection(context: Context) : DetectorResult(context) {
     private fun commander(command: String?): Array<String>? {
         var process: Process? = null
         try {
-            process = Runtime.getRuntime().exec(command)
+            process = Runtime.getRuntime().exec(arrayOf("sh", "-c", command ?: ""))
             BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
                 val propVal = reader.readText()
                 return propVal.split("\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
@@ -245,5 +237,8 @@ class RootDetection(context: Context) : DetectorResult(context) {
 
     companion object {
         private const val TAG = "RootDetection"
+        private const val ONEPLUS = "oneplus"
+        private const val MOTO = "moto"
+        private const val XIAOMI = "xiaomi"
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import com.ssithara.rootkit.core.DetectorResult
 import com.ssithara.rootkit.core.Result
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.random.Random
 
 /**
@@ -25,11 +26,11 @@ import kotlin.random.Random
  * when a caller invokes [run] followed immediately by [isFridaDetected] — all
  * boolean helpers share a short-lived cache backed by [getOrComputeSummary].
  *
- * The cache is stored in an [AtomicReference] so it is safe to read/write from
- * multiple threads without synchronization. In the unlikely event that two
- * threads both observe a stale entry at exactly the same moment, both will
- * compute a fresh summary independently and the last write wins — this is
- * acceptable because both computations produce the same logical result.
+ * The cache is stored in an [AtomicReference] for lock-free reads and guarded
+ * by a [java.util.concurrent.locks.ReentrantLock] for the compute path. When
+ * the cache expires, only the first thread to acquire the lock performs the
+ * expensive native detection work; concurrent threads wait and then reuse the
+ * freshly computed result via double-checked locking.
  *
  * ## Security Considerations
  *
@@ -63,6 +64,13 @@ class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
 
     private val cachedSummary = AtomicReference<CachedSummary?>(null)
 
+    /**
+     * Lock that serializes concurrent cache computations so that only one
+     * thread performs the expensive native detection work at a time while
+     * other threads wait and then reuse the freshly computed result.
+     */
+    private val cacheLock = ReentrantLock()
+
     // -------------------------------------------------------------------------
     // Core
     // -------------------------------------------------------------------------
@@ -71,9 +79,10 @@ class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
      * Returns a [DetectionSummary] that was computed no earlier than
      * the effective cache TTL milliseconds ago.
      *
-     * If the cached entry is still fresh it is returned immediately without
-     * touching any native code.  Otherwise all four sub-detectors are run,
-     * the result is cached, and then returned.
+     * Uses a [ReentrantLock] so that concurrent calls properly serialize
+     * around the cache computation. Only one thread will perform the
+     * expensive native detection work; others will wait and reuse the
+     * freshly computed result.
      *
      * The effective TTL includes random jitter to prevent timing attacks
      * that could infer detection results by measuring cache hit/miss timing.
@@ -81,30 +90,46 @@ class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
     private fun getOrComputeSummary(): DetectionSummary {
         val now = System.currentTimeMillis()
 
+        // Fast path: check cache without acquiring lock
         cachedSummary.get()?.let { cached ->
             if (now - cached.timestamp < getEffectiveTtl()) {
                 return cached.summary
             }
         }
 
-        val fridaResult = fridaDetection.runSafely()
-        val xposedResult = xposedDetection.runSafely()
-        val memoryResult = memoryTamperingDetection.runSafely()
-        val nativeHookResult = nativeHookDetection.runSafely()
+        // Slow path: acquire lock and double-check cache
+        cacheLock.lock()
+        try {
+            // Double-check after acquiring lock — another thread may have
+            // already computed a fresh summary while we were waiting.
+            val nowAfterLock = System.currentTimeMillis()
+            cachedSummary.get()?.let { cached ->
+                if (nowAfterLock - cached.timestamp < getEffectiveTtl()) {
+                    return cached.summary
+                }
+            }
 
-        val summary = DetectionSummary(
-            fridaDetected = fridaResult == Result.FOUND,
-            fridaFailed = fridaResult == Result.ERROR,
-            xposedDetected = xposedResult == Result.FOUND,
-            xposedFailed = xposedResult == Result.ERROR,
-            memoryTamperingDetected = memoryResult == Result.FOUND,
-            memoryTamperingFailed = memoryResult == Result.ERROR,
-            nativeHookDetected = nativeHookResult == Result.FOUND,
-            nativeHookFailed = nativeHookResult == Result.ERROR,
-        )
+            val fridaResult = fridaDetection.runSafely()
+            val xposedResult = xposedDetection.runSafely()
+            val memoryResult = memoryTamperingDetection.runSafely()
+            val nativeHookResult = nativeHookDetection.runSafely()
 
-        cachedSummary.set(CachedSummary(summary, System.currentTimeMillis()))
-        return summary
+            val summary = DetectionSummary(
+                fridaDetected = fridaResult == Result.FOUND,
+                fridaFailed = fridaResult == Result.ERROR,
+                xposedDetected = xposedResult == Result.FOUND,
+                xposedFailed = xposedResult == Result.ERROR,
+                memoryTamperingDetected = memoryResult == Result.FOUND,
+                memoryTamperingFailed = memoryResult == Result.ERROR,
+                nativeHookDetected = nativeHookResult == Result.FOUND,
+                nativeHookFailed = nativeHookResult == Result.ERROR,
+            )
+
+            cachedSummary.set(CachedSummary(summary, System.currentTimeMillis()))
+            return summary
+        } finally {
+            cacheLock.unlock()
+        }
     }
 
     /**

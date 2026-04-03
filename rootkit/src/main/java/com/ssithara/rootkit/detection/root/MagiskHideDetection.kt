@@ -18,6 +18,8 @@ class MagiskHideDetection(context: Context) : DetectorResult(context) {
     private val flags = PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or
             PackageManager.GET_PROVIDERS or PackageManager.GET_RECEIVERS
 
+    private fun getPackageInfoFlags(): Long = flags.toLong()
+
     // Magisk stub signatures for detecting Magisk Hide
     // These stubs are used by Magisk to hide its presence from app listings
     private val magiskStubs = listOf(
@@ -113,7 +115,12 @@ class MagiskHideDetection(context: Context) : DetectorResult(context) {
             
             // Detailed stub signature check
             runCatching {
-                val pInfo = pm.getPackageInfo(packageName, flags)
+                @Suppress("DEPRECATION")
+                val pInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    pm.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(getPackageInfoFlags()))
+                } else {
+                    pm.getPackageInfo(packageName, flags)
+                }
                 val aInfo = pInfo.applicationInfo
                 if (aInfo == null) return@runCatching
                 

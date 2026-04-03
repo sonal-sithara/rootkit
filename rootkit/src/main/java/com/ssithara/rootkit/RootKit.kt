@@ -73,6 +73,12 @@ class RootKit(context: Context) {
      */
     private val isLibraryLoaded = AtomicBoolean(false)
 
+    /**
+     * Active periodic check controller, if one was created via [initialize].
+     * Stored so that [dispose] can clean up its underlying CoroutineScope.
+     */
+    private val activeController = java.util.concurrent.atomic.AtomicReference<PeriodicCheckController?>(null)
+
     private val magiskHideDetection by lazy { MagiskHideDetection(context) }
     private val magiskDetection by lazy { MagiskDetection(context) }
     private val rootDetection by lazy { RootDetection(context) }
@@ -90,6 +96,19 @@ class RootKit(context: Context) {
      * Use this key with your own AES-GCM decrypt implementation (IV is the first
      * 12 bytes of the decoded ciphertext, followed by the 16-byte auth tag and
      * ciphertext from [javax.crypto.Cipher] with "AES/GCM/NoPadding").
+     *
+     * ## Security Limitations
+     *
+     * This key is accessible in-process, meaning a determined attacker with
+     * memory access (e.g., via Frida or a debugger) can extract it. The
+     * encryption provides **obfuscation** rather than true security — it
+     * raises the bar for casual inspection but should not be relied upon
+     * as a sole integrity guarantee.
+     *
+     * For stronger integrity guarantees, consider using HMAC-based
+     * authentication (e.g., HMAC-SHA256) on detection results, or verify
+     * results server-side where the signing key is not accessible to the
+     * client process.
      *
      * @return Base64-encoded 32-byte AES key (NO_WRAP encoding).
      */
@@ -188,7 +207,9 @@ class RootKit(context: Context) {
             throw IllegalStateException("RootKit is already initialized")
         }
         loadLibraryOnce()
-        return PeriodicCheckControllerImpl(context, config, sessionKey)
+        val controller = PeriodicCheckControllerImpl(context, config, sessionKey)
+        activeController.set(controller)
+        return controller
     }
 
     /**
@@ -213,6 +234,23 @@ class RootKit(context: Context) {
     fun initialize(block: PeriodicCheckConfig.Builder.() -> Unit): PeriodicCheckController {
         val config = PeriodicCheckConfig.Builder().apply(block).build()
         return initialize(config)
+    }
+
+    /**
+     * Release all resources held by this [RootKit] instance.
+     *
+     * If a [PeriodicCheckController] was created via [initialize], calling
+     * `dispose()` stops any running periodic checks and cancels the underlying
+     * CoroutineScope. After calling this method the instance should not be
+     * used for further detection — create a new [RootKit] instance instead.
+     *
+     * **Important:** Consumers **must** call this method when the [RootKit]
+     * instance is no longer needed (e.g., in `onDestroy` of an Activity or
+     * Service, or in a `Closeable` wrapper). Failing to do so will leak the
+     * CoroutineScope created by the periodic check controller.
+     */
+    fun dispose() {
+        activeController.getAndSet(null)?.dispose()
     }
 
     fun isRootedDevice(): String {

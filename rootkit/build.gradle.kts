@@ -46,15 +46,7 @@ android {
     }
 }
 
-tasks.register("prepareKotlinBuildScriptModel") {}
-
 dependencies {
-//    implementation("com.android.tools.build:apkzlib:7.2.2")
-//    implementation("io.github.vvb2060.ndk:xposeddetector:2.2")
-//    implementation("com.google.code.gson:gson:2.10.1")
-//    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-//    implementation("androidx.annotation:annotation:1.7.1")
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

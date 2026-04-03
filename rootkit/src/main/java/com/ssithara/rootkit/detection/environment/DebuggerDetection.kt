@@ -19,25 +19,25 @@ import com.ssithara.rootkit.detection.runtime.FridaDetection
  * RuntimeTamperingDetection provides comprehensive tampering detection
  * including Frida, Xposed, memory tampering, and native hooks.
  */
-class DebuggerDetection(context: Context) : DetectorResult(context) {
-
-    companion object {
-        private const val TAG = "DebuggerDetection"
-    }
-
+class DebuggerDetection(
+    context: Context,
     /**
      * Whether to include Frida detection in this detector.
      * Set to false if you're using RuntimeTamperingDetection separately
      * to avoid duplicate detection overhead.
      */
-    var includeFridaDetection: Boolean = true
-
+    private val includeFridaDetection: Boolean = true,
     /**
      * Whether to treat ADB being enabled as a debugger detection.
      * Defaults to false since ADB is commonly enabled during development
      * and on many consumer devices. Set to true for stricter detection.
      */
-    var treatAdbAsDebugger: Boolean = false
+    private val treatAdbAsDebugger: Boolean = false
+) : DetectorResult(context) {
+
+    companion object {
+        private const val TAG = "DebuggerDetection"
+    }
 
     private val fridaDetection by lazy { FridaDetection(context) }
 

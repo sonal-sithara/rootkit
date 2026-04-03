@@ -14,6 +14,7 @@ import com.ssithara.rootkit.core.Result
  * - Library detection (checks for Frida libraries in memory)
  * - File descriptor detection (checks for Frida-related file descriptors)
  *
+ *
  * ## Error Handling
  *
  * Detection failures are tracked separately from "not detected" results.
@@ -42,10 +43,6 @@ class FridaDetection(context: Context) : DetectorResult(context) {
         @JvmStatic
         @Throws(UnsatisfiedLinkError::class)
         private external fun detectByFileDescriptors(): Boolean
-
-        @JvmStatic
-        @Throws(UnsatisfiedLinkError::class)
-        private external fun detectByEnvVars(): Boolean
     }
 
     /**
@@ -69,8 +66,6 @@ class FridaDetection(context: Context) : DetectorResult(context) {
         runCatching { detections.add(detectByLibraries()) }
             .onFailure { failures.add(true) }
         runCatching { detections.add(detectByFileDescriptors()) }
-            .onFailure { failures.add(true) }
-        runCatching { detections.add(detectByEnvVars()) }
             .onFailure { failures.add(true) }
 
         // If any native method failed, return ERROR
@@ -97,8 +92,6 @@ class FridaDetection(context: Context) : DetectorResult(context) {
     fun isDetectedByFileDescriptors(): Boolean =
         runCatching { detectByFileDescriptors() }.getOrDefault(false)
 
-    fun isDetectedByEnvVars(): Boolean = runCatching { detectByEnvVars() }.getOrDefault(false)
-
     /**
      * Get detailed detection results.
      * Note: Failures are not explicitly tracked in the returned map;
@@ -110,8 +103,7 @@ class FridaDetection(context: Context) : DetectorResult(context) {
             "memory_maps_detection" to isDetectedByMemoryMaps(),
             "thread_detection" to isDetectedByThreads(),
             "library_detection" to isDetectedByLibraries(),
-            "file_descriptor_detection" to isDetectedByFileDescriptors(),
-            "env_var_detection" to isDetectedByEnvVars()
+            "file_descriptor_detection" to isDetectedByFileDescriptors()
         )
     }
 }

@@ -126,14 +126,11 @@ static inline bool is_supath_detected() {
 
     bool bRet = false;
     for (int i = 0; i < len; i++) {
-        //__android_log_print(ANDROID_LOG_INFO, TAG, "Checking SU Path  :%s", suPaths[i]);
         if (open(suPaths[i], O_RDONLY) >= 0) {
-            // __android_log_print(ANDROID_LOG_INFO, TAG, "Found SU Path :%s", suPaths[i]);
             bRet = true;
             break;
         }
         if (0 == access(suPaths[i], R_OK)) {
-            //__android_log_print(ANDROID_LOG_INFO, TAG, "Found SU Path :%s", suPaths[i]);
             bRet = true;
             break;
         }

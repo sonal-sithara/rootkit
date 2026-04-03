@@ -3,7 +3,7 @@ package com.ssithara.rootkit.internal.util
 internal class ConstData {
 
     companion object {
-        val rootsAppPackage: Array<String?> = arrayOf<String?>(
+        val rootsAppPackage: Array<String> = arrayOf(
             "com.noshufou.android.su",
             "com.noshufou.android.su.elite",
             "eu.chainfire.supersu",
@@ -13,7 +13,7 @@ internal class ConstData {
             "com.topjohnwu.magisk",
         )
 
-        val dangerousListApps: Array<String?> = arrayOf<String?>(
+        val dangerousListApps: Array<String> = arrayOf(
             "com.koushikdutta.rommanager",
             "com.koushikdutta.rommanager.license",
             "com.dimonvideo.luckypatcher",
@@ -24,7 +24,7 @@ internal class ConstData {
             "com.chelpus.luckypatcher"
         )
 
-        val rootCloakingApps: Array<String?> = arrayOf<String?>(
+        val rootCloakingApps: Array<String> = arrayOf(
             "com.devadvance.rootcloak",
             "com.devadvance.rootcloakplus",
             "de.robv.android.xposed.installer",
@@ -37,7 +37,7 @@ internal class ConstData {
 
             )
 
-        val superUserPath: Array<String?> = arrayOf<String?>(
+        val superUserPath: Array<String> = arrayOf(
             "/data/local/su",
             "/data/local/bin/su",
             "/data/local/xbin/su",
@@ -60,7 +60,7 @@ internal class ConstData {
             "/data/adb/magisk.img",
         )
 
-        val notWritablePath: Array<String?> = arrayOf<String?>(
+        val notWritablePath: Array<String> = arrayOf(
             "/system",
             "/system/bin",
             "/system/sbin",

@@ -11,6 +11,3 @@ internal data class MagiskStubInfo(
     val content_providers: Int,
     val class_name: String
 )
-
-// Type alias for backward compatibility
-internal typealias MagiskStubInfoDto = MagiskStubInfo

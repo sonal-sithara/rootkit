@@ -8,7 +8,8 @@
 # Keep the top-level facade so consumers can reference it by name
 -keep public class com.ssithara.rootkit.RootKit { *; }
 
-# Keep all public core types (Result, DetectorResult, EncryptionService, AppZygote)
+# Keep all public core types (Result, DetectorResult, AppZygote)
+# Note: EncryptionService is internal and should NOT be kept as public API
 -keep public class com.ssithara.rootkit.core.Result { *; }
 -keep public class com.ssithara.rootkit.core.DetectorResult { *; }
 -keep public class com.ssithara.rootkit.core.AppZygote { *; }

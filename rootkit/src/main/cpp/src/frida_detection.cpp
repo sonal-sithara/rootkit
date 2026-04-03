@@ -8,7 +8,6 @@
  * - Thread name inspection
  * - Loaded library detection
  * - File descriptor analysis
- * - Environment variable checks
  */
 
 #include <jni.h>
@@ -276,26 +275,5 @@ Java_com_ssithara_rootkit_detection_runtime_FridaDetection_detectByFileDescripto
     }
 
     closedir(fd_dir);
-    return JNI_FALSE;
-}
-
-/**
- * @brief Detect Frida by checking for specific environment variables.
- *
- * Disabled: The environment variables checked here (FRIDA_SCRIPT_PATH,
- * FRIDA_EXTERNAL_DEVICE, FRIDA_SERVER_PATH) are never set by Frida in
- * practice.  The other five detection methods (ports, memory maps, threads,
- * libraries, file descriptors) provide comprehensive coverage.
- *
- * @param env JNI environment (unused)
- * @param clazz Java class reference (unused)
- * @return Always JNI_FALSE
- */
-extern "C"
-JNIEXPORT jboolean JNICALL
-Java_com_ssithara_rootkit_detection_runtime_FridaDetection_detectByEnvVars(JNIEnv *env,
-                                                                           jclass clazz) {
-    (void) env;
-    (void) clazz;
     return JNI_FALSE;
 }

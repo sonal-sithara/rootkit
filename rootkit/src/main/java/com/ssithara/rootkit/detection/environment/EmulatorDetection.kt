@@ -14,8 +14,8 @@ class EmulatorDetection(context: Context) : DetectorResult(context) {
         private const val TAG = "EmulatorDetection"
     }
 
-    private val paths: ArrayList<String?> = ArrayList<String?>(
-        mutableListOf<String?>(
+    private val paths: ArrayList<String> = ArrayList<String>(
+        mutableListOf(
             "/dev/socket/genyd",
             "/dev/socket/baseband_genyd",
             "/dev/socket/qemud",
@@ -37,13 +37,7 @@ class EmulatorDetection(context: Context) : DetectorResult(context) {
     )
 
 
-    private fun isEmulator(): Boolean {
-        /*        Log.e("*********",Build.MANUFACTURER);
-                Log.e("*********",Build.MODEL);
-                Log.e("*********",Build.HARDWARE);
-                Log.e("*********",Build.PRODUCT);
-                Log.e("*********",Build.BOARD);*/
-
+    private fun checkBuildProperties(): Boolean {
         return Build.MANUFACTURER.contains("Genymotion")
                 || Build.MODEL.contains("google_sdk")
                 || Build.MODEL.contains("sdk_gphone64_x86_64")
@@ -62,10 +56,10 @@ class EmulatorDetection(context: Context) : DetectorResult(context) {
                 || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
     }
 
-    private fun isEmulator2(): Boolean {
+    private fun checkEmulatorFiles(): Boolean {
         try {
             for (i in paths.indices) {
-                val file = File(paths.get(i) ?: "")
+                val file = File(paths[i])
                 if (file.exists()) {
                     return true
                 }
@@ -78,7 +72,7 @@ class EmulatorDetection(context: Context) : DetectorResult(context) {
 
     override fun run(): Result {
         var isEmulator = Result.NOT_FOUND
-        if (isEmulator() || isEmulator2()) {
+        if (checkBuildProperties() || checkEmulatorFiles()) {
             isEmulator = Result.FOUND
         }
         return isEmulator
@@ -90,8 +84,8 @@ class EmulatorDetection(context: Context) : DetectorResult(context) {
      */
     fun getDetectionDetails(): Map<String, Boolean> {
         return mapOf(
-            "device_model_check" to isEmulator(),
-            "emulator_files_check" to isEmulator2()
+            "device_model_check" to checkBuildProperties(),
+            "emulator_files_check" to checkEmulatorFiles()
         )
     }
 }

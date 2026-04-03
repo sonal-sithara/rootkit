@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(./gradlew:*)",
-      "Bash(keytool:*)"
+      "Bash(keytool:*)",
+      "mcp__plugin_firebase_firebase__firebase_login",
+      "mcp__plugin_firebase_firebase__firebase_get_environment"
     ]
-  }
+  },
+  "outputStyle": "Coding Vibes"
 }

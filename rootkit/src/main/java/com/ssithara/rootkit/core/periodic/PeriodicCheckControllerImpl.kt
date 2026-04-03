@@ -308,10 +308,12 @@ internal class PeriodicCheckControllerImpl(
                 }
             }
 
-            // Return safe result (fail safe - assume no threat on error)
+            // Return ERROR to be consistent with one-shot checks.
+            // The callback/consumer should decide how to handle errors,
+            // not the framework.
             PeriodicCheckConfig.DetectionResult(
                 detectionType = type,
-                result = Result.NOT_FOUND,
+                result = Result.ERROR,
                 timestamp = System.currentTimeMillis()
             )
         }
