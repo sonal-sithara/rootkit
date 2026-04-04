@@ -1,5 +1,7 @@
 package com.ssithara.rootkit.core.periodic
 
+import androidx.annotation.Keep
+
 /**
  * Controller for managing periodic security check lifecycle
  *
@@ -16,6 +18,7 @@ package com.ssithara.rootkit.core.periodic
  * controller.dispose()
  * ```
  */
+@Keep
 interface PeriodicCheckController {
 
     /**

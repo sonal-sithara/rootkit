@@ -1,5 +1,6 @@
 package com.ssithara.rootkit.core.periodic
 
+import androidx.annotation.Keep
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -40,7 +41,8 @@ import androidx.lifecycle.ProcessLifecycleOwner
  * visibilityCheck.detach()
  * ```
  */
-class AppVisibilityAwareCheck(
+@Keep
+class AppVisibilityAwareCheck @JvmOverloads constructor(
     private val controller: PeriodicCheckController?,
     private val config: VisibilityConfig = VisibilityConfig.DEFAULT
 ) : DefaultLifecycleObserver {
@@ -53,6 +55,7 @@ class AppVisibilityAwareCheck(
      * @property backgroundCheckIntervalMultiplier Multiply interval by this in background (0 = pause)
      * @property minBackgroundIntervalMs Minimum interval in background when multiplier > 0
      */
+    @Keep
     data class VisibilityConfig(
         val pauseInBackground: Boolean = true,
         val resumeOnForeground: Boolean = true,
@@ -170,6 +173,8 @@ class AppVisibilityAwareCheck(
          * Prefer this factory over the constructor to avoid the `this`-escape
          * anti-pattern.
          */
+        @JvmStatic
+        @Keep
         fun create(controller: PeriodicCheckController): AppVisibilityAwareCheck {
             return AppVisibilityAwareCheck(controller, VisibilityConfig.DEFAULT)
                 .also { it.attach() }
@@ -182,6 +187,8 @@ class AppVisibilityAwareCheck(
          * Prefer this factory over the constructor to avoid the `this`-escape
          * anti-pattern.
          */
+        @JvmStatic
+        @Keep
         fun create(
             controller: PeriodicCheckController,
             config: VisibilityConfig

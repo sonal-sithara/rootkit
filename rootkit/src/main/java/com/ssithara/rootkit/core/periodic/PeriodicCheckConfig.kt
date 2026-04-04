@@ -1,5 +1,6 @@
 package com.ssithara.rootkit.core.periodic
 
+import androidx.annotation.Keep
 import com.ssithara.rootkit.core.Result
 
 /**
@@ -14,6 +15,7 @@ import com.ssithara.rootkit.core.Result
  *     .build()
  * ```
  */
+@Keep
 class PeriodicCheckConfig private constructor(
     val intervalMs: Long,
     val initialDelayMs: Long,
@@ -39,6 +41,7 @@ class PeriodicCheckConfig private constructor(
     /**
      * Types of security detections that can be monitored
      */
+    @Keep
     enum class DetectionType {
         ROOT,
         MAGISK,
@@ -55,6 +58,7 @@ class PeriodicCheckConfig private constructor(
     /**
      * Execution mode for periodic checks
      */
+    @Keep
     enum class ExecutionMode {
         SEQUENTIAL,     // Run detections one after another
         PARALLEL,       // Run all detections concurrently
@@ -64,6 +68,7 @@ class PeriodicCheckConfig private constructor(
     /**
      * Callback interface for security detection results
      */
+    @Keep
     interface SecurityCallback {
         /**
          * Called when a single detection completes
@@ -84,6 +89,7 @@ class PeriodicCheckConfig private constructor(
     /**
      * Result of a single detection check
      */
+    @Keep
     data class DetectionResult(
         val detectionType: DetectionType,
         val result: Result,
@@ -95,6 +101,7 @@ class PeriodicCheckConfig private constructor(
     /**
      * Summary of a complete check cycle
      */
+    @Keep
     data class SecuritySummary(
         val results: Map<DetectionType, DetectionResult>,
         val anyThreatDetected: Boolean,
@@ -106,6 +113,7 @@ class PeriodicCheckConfig private constructor(
     /**
      * Error handler for detection failures
      */
+    @Keep
     interface ErrorHandler {
         /**
          * Handle an error from a detection
@@ -117,6 +125,7 @@ class PeriodicCheckConfig private constructor(
     /**
      * Builder for creating PeriodicCheckConfig
      */
+    @Keep
     class Builder {
         private var intervalMs: Long = DEFAULT_INTERVAL_MS
         private var initialDelayMs: Long = DEFAULT_INITIAL_DELAY_MS

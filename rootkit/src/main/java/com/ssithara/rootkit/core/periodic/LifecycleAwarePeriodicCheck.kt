@@ -1,5 +1,6 @@
 package com.ssithara.rootkit.core.periodic
 
+import androidx.annotation.Keep
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -33,6 +34,7 @@ import androidx.lifecycle.LifecycleOwner
  * // Controller will be disposed when the lifecycle owner is destroyed.
  * ```
  */
+@Keep
 class LifecycleAwarePeriodicCheck(
     val controller: PeriodicCheckController,
     private val lifecycle: Lifecycle,
@@ -107,6 +109,8 @@ class LifecycleAwarePeriodicCheck(
          * @param lifecycle  The [Lifecycle] to observe.
          * @return           The attached [LifecycleAwarePeriodicCheck] wrapper.
          */
+        @JvmStatic
+        @Keep
         fun bind(
             controller: PeriodicCheckController,
             lifecycle: Lifecycle,

@@ -3,6 +3,7 @@ package com.ssithara.rootkit
 import android.content.Context
 import android.util.Base64
 import android.util.Log
+import androidx.annotation.Keep
 import com.ssithara.rootkit.core.EncryptionService
 import com.ssithara.rootkit.core.Result
 import com.ssithara.rootkit.core.periodic.PeriodicCheckConfig
@@ -14,28 +15,34 @@ import com.ssithara.rootkit.detection.root.MagiskDetection
 import com.ssithara.rootkit.detection.root.MagiskHideDetection
 import com.ssithara.rootkit.detection.root.RootDetection
 import com.ssithara.rootkit.detection.runtime.RuntimeTamperingDetection
+import java.io.Closeable
 import java.security.SecureRandom
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * RootKit - Android Security Detection Library
+ * RootKit — Android Security Detection Library
  *
- * This library provides comprehensive security detection including:
- * - Root detection (Root, Magisk, MagiskHide)
- * - Runtime tampering detection (Frida, Xposed, Memory tampering, Native hooks)
- * - Environment detection (Emulator, Debugger)
+ * Single entry point for all security detection. Provides:
+ * - **Root detection** (Root, Magisk, MagiskHide/DenyList)
+ * - **Runtime tampering detection** (Frida, Xposed, Memory tampering, Native hooks)
+ * - **Environment detection** (Emulator, Debugger)
+ * - **Periodic monitoring** with lifecycle-aware scheduling
  *
- * Basic usage:
+ * All detection methods return **AES-256-GCM encrypted** strings. Use [decryptResult]
+ * to obtain a [Result] enum, or call [runAllDetections] for a typed [SecurityReport].
+ *
+ * ## Quick Start
  * ```kotlin
- * val rootKit = RootKit(context)
- * rootKit.initialize()
- *
- * // Decrypt results using the session key
- * val key = rootKit.getEncryptionKey()
- * val isRooted = rootKit.isRootedDevice() // encrypted — decrypt with key
+ * RootKit(context).use { rootKit ->
+ *     rootKit.initialize()
+ *     val report = rootKit.runAllDetections()
+ *     if (report.anyThreatFound(rootKit)) {
+ *         // Security threat detected
+ *     }
+ * }
  * ```
  *
- * With periodic monitoring:
+ * ## Periodic Monitoring
  * ```kotlin
  * val config = PeriodicCheckConfig.Builder()
  *     .setInterval(30_000L)
@@ -46,8 +53,23 @@ import java.util.concurrent.atomic.AtomicBoolean
  * val controller = rootKit.initialize(config)
  * controller.start()
  * ```
+ *
+ * ## Thread Safety
+ * This class is thread-safe. Initialization uses [java.util.concurrent.atomic.AtomicBoolean]
+ * for lock-free state transitions.
+ *
+ * ## Lifecycle
+ * Implements [Closeable] — use Kotlin `use {}` blocks for automatic cleanup,
+ * or call [dispose] / [close] manually when done.
+ *
+ * @param context Any Android context. The [android.content.Context.getApplicationContext]
+ *                is used internally to prevent Activity/Fragment leaks.
+ * @see Result for detection result values
+ * @see SecurityReport for typed result snapshots
+ * @see PeriodicCheckConfig for periodic monitoring configuration
  */
-class RootKit(context: Context) {
+@Keep
+class RootKit(context: Context) : Closeable {
 
     // Always hold the application context to prevent leaking Activity/Fragment references.
     private val context: Context = context.applicationContext
@@ -253,6 +275,23 @@ class RootKit(context: Context) {
         activeController.getAndSet(null)?.dispose()
     }
 
+    /**
+     * Closes this [RootKit] instance, releasing all held resources.
+     *
+     * Equivalent to calling [dispose]. Implementing [Closeable] allows
+     * usage with Kotlin `use {}` blocks and Java try-with-resources.
+     */
+    override fun close() = dispose()
+
+    /**
+     * Combined root detection check.
+     *
+     * Runs Root, Magisk, and MagiskHide detectors. Returns [Result.FOUND] if any
+     * detector finds a threat, [Result.ERROR] if any detector fails, or
+     * [Result.NOT_FOUND] if all pass.
+     *
+     * @return Encrypted result string. Use [decryptResult] to decode.
+     */
     fun isRootedDevice(): String {
         checkInitialized()
         val detections = listOf(
@@ -298,12 +337,27 @@ class RootKit(context: Context) {
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
+    /**
+     * Debugger detection check.
+     *
+     * Detects both native (ptrace) and Java-level debugging.
+     *
+     * @return Encrypted result string. Use [decryptResult] to decode.
+     */
     fun isDebuggerDetected(): String {
         checkInitialized()
         val result = debuggerDetection.runSafely()
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
+    /**
+     * Emulator detection check.
+     *
+     * Checks hardware properties, system properties, and other indicators
+     * to detect Android emulator environments.
+     *
+     * @return Encrypted result string. Use [decryptResult] to decode.
+     */
     fun isEmulatorDevice(): String {
         checkInitialized()
         val result = emulatorDetection.runSafely()
@@ -395,7 +449,7 @@ class RootKit(context: Context) {
     /**
      * Get a summary of runtime tampering detections.
      */
-    fun getRuntimeTamperingSummary(): RuntimeTamperingDetection.DetectionSummary? {
+    fun getRuntimeTamperingSummary(): RuntimeDetectionSummary? {
         checkInitialized()
         return try {
             runtimeTamperingDetection.getDetectionSummary()
@@ -419,6 +473,63 @@ class RootKit(context: Context) {
     fun getDebuggerDetails(): Map<String, Boolean> {
         checkInitialized()
         return debuggerDetection.getDetectionDetails()
+    }
+
+    /**
+     * Decrypt an encrypted detection result string back to a [Result] enum.
+     *
+     * This is a convenience method so consumers do not need to implement
+     * AES-256-GCM decryption themselves. It uses the per-instance session
+     * key returned by [getEncryptionKey].
+     *
+     * @param encryptedResult An encrypted result string returned by any detection method.
+     * @return The decrypted [Result] enum value.
+     * @throws IllegalArgumentException if the encrypted string cannot be decrypted
+     *         or does not map to a known [Result].
+     */
+    fun decryptResult(encryptedResult: String): Result {
+        val decrypted = EncryptionService.decryptWithBase64Key(encryptedResult, sessionKey)
+        return when (decrypted) {
+            Result.FOUND.name -> Result.FOUND
+            Result.NOT_FOUND.name -> Result.NOT_FOUND
+            Result.ERROR.name -> Result.ERROR
+            else -> throw IllegalArgumentException("Unknown result value: $decrypted")
+        }
+    }
+
+    /**
+     * Run all security detections and return a typed [SecurityReport].
+     *
+     * This is a convenience method that runs every detection in sequence and
+     * packages the encrypted results into a single report. Use [SecurityReport.toDecodedMap]
+     * or [SecurityReport.anyThreatFound] to inspect results.
+     *
+     * ```kotlin
+     * RootKit(context).use { rootKit ->
+     *     rootKit.initialize()
+     *     val report = rootKit.runAllDetections()
+     *     if (report.anyThreatFound(rootKit)) {
+     *         // Handle security threat
+     *     }
+     * }
+     * ```
+     *
+     * @return A [SecurityReport] containing all encrypted detection results.
+     */
+    fun runAllDetections(): SecurityReport {
+        checkInitialized()
+        return SecurityReport(
+            rootDetection = isRootDetected(),
+            magiskDetection = isMagiskDetected(),
+            magiskHideDetection = isMagiskHideDetected(),
+            runtimeTampering = isRuntimeTamperingDetected(),
+            emulatorDetection = isEmulatorDevice(),
+            debuggerDetection = isDebuggerDetected(),
+            fridaDetection = isFridaDetected(),
+            xposedDetection = isXposedDetected(),
+            memoryTamperingDetection = isMemoryTamperingDetected(),
+            nativeHookDetection = isNativeHookDetected()
+        )
     }
 
     companion object {

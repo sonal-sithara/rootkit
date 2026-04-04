@@ -57,8 +57,18 @@ dependencies {
     implementation(libs.xposeddetector)
 
     // Periodic checks dependencies
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.androidx.lifecycle.process)
+    api(libs.kotlinx.coroutines.android)
+    api(libs.androidx.lifecycle.process)
+}
+
+tasks.register<Jar>("sourcesJar") {
+    archiveClassifier.set("sources")
+    from(android.sourceSets["main"].java.srcDirs)
+}
+
+tasks.register<Jar>("javadocJar") {
+    archiveClassifier.set("javadoc")
+    // Empty stub — JitPack and some consumers require a javadoc JAR
 }
 
 publishing {
@@ -66,10 +76,35 @@ publishing {
         create<MavenPublication>("release") {
             groupId = "com.ssithara"
             artifactId = "rootkit"
-            version = "1.0.0"
+            version = project.property("LIBRARY_VERSION") as String
 
             afterEvaluate {
                 from(components["release"])
+            }
+
+            artifact(tasks["sourcesJar"])
+            artifact(tasks["javadocJar"])
+
+            pom {
+                name.set("RootKit")
+                description.set("Android security detection library for root, runtime tampering, and environment threats")
+                url.set("https://github.com/ssithara/rootkit")
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+                developers {
+                    developer {
+                        id.set("ssithara")
+                        name.set("Sonal Sithara")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:github.com/ssithara/rootkit.git")
+                    url.set("https://github.com/ssithara/rootkit")
+                }
             }
         }
     }
