@@ -19,20 +19,33 @@ dependencies {
 
 ## Permissions
 
-The library declares `QUERY_ALL_PACKAGES` in its manifest. This permission is **required** for full Magisk stub detection on Android 11+.
+### `QUERY_ALL_PACKAGES` (required for full Magisk detection on Android 11+)
 
-### Android 10 and below
-Automatically granted — no action needed.
+This permission is **not declared by the library** — you must add it to your app's manifest yourself if you need Magisk stub detection on Android 11+.
 
-### Android 11 and above
-You **must** declare the permission in your app's `AndroidManifest.xml` with a justification for Google Play Store review:
+**Android 10 and below:** Automatically granted — no action needed.
+
+**Android 11 and above:** Add to your `AndroidManifest.xml`:
 
 ```xml
-<uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+<uses-permission
+    android:name="android.permission.QUERY_ALL_PACKAGES"
     android:maxSdkVersion="32" />
 ```
 
-> **Note:** `QUERY_ALL_PACKAGES` is a restricted permission. Google Play requires a sensitive permissions declaration form. Without it, Magisk stub detection will silently return `ERROR` on Android 11+.
+You will need to justify this permission to Google Play in your store listing. Without it, Magisk stub detection returns `ERROR` on Android 11+.
+
+### App Zygote Preloading (optional, for faster native init)
+
+The library supports preloading `librootkit.so` in the zygote process for faster initialization. To enable it, add to your app's manifest:
+
+```xml
+<application
+    android:zygotePreloadName="com.ssithara.rootkit.core.AppZygote">
+</application>
+```
+
+This is optional — detection works without it, just slightly slower on first call.
 
 ## Initialization
 

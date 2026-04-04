@@ -118,29 +118,28 @@ internal class NativeHookDetection(context: Context) : DetectorResult(context) {
 
     /**
      * Check for modified function pointers.
-     * Returns null if native library loading failed (dlopen returned null),
-     * which is treated as suspicious.
+     * Returns false if native library loading failed (dlopen returned null).
+     * Detection failures are surfaced through [runSafely] returning [Result.ERROR].
      */
-    fun isDetectedByModifiedFunctionPointers(): Boolean? {
+    fun isDetectedByModifiedFunctionPointers(): Boolean {
         return runCatching {
             val result = detectModifiedFunctionPointers()
             if (result < 0) {
-                // -1 indicates dlopen failure - return null to indicate error
-                null
+                // -1 indicates dlopen failure — treat as not detected (error is
+                // surfaced via runSafely -> Result.ERROR, not this boolean)
+                false
             } else {
                 result > 0
             }
-        }.getOrNull()
+        }.getOrDefault(false)
     }
 
     /**
      * Get detailed detection results.
      * Note: Failures are not explicitly tracked in the returned map;
-     * callers should use [run] to check for detection failures.
-     * The modified_function_pointer_detection may be null if native
-     * library loading failed.
+     * callers should use [runSafely] to check for detection failures.
      */
-    fun getDetectionDetails(): Map<String, Boolean?> {
+    fun getDetectionDetails(): Map<String, Boolean> {
         return mapOf(
             "inline_hook_detection" to isDetectedByInlineHooks(),
             "got_hook_detection" to isDetectedByGOTHooks(),

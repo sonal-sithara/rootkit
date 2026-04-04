@@ -218,6 +218,7 @@ class AppVisibilityAwareCheck @JvmOverloads constructor(
  * visibilityCheck.detach()
  * ```
  */
+@Keep
 fun PeriodicCheckController.withAppVisibilityAwareness(
     config: AppVisibilityAwareCheck.VisibilityConfig = AppVisibilityAwareCheck.VisibilityConfig.DEFAULT
 ): AppVisibilityAwareCheck {

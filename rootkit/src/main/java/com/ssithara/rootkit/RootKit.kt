@@ -178,10 +178,13 @@ class RootKit(context: Context) : Closeable {
      */
     @Throws(IllegalStateException::class, UnsatisfiedLinkError::class)
     fun initialize() {
-        if (!isInitialized.compareAndSet(false, true)) {
+        if (isInitialized.get()) {
             throw IllegalStateException("RootKit is already initialized")
         }
+        // Load library BEFORE marking initialized — if load fails, the flag
+        // stays false so a subsequent call can retry or report a clear error.
         loadLibraryOnce()
+        isInitialized.set(true)
     }
 
     /**
@@ -218,10 +221,13 @@ class RootKit(context: Context) : Closeable {
      */
     @Throws(IllegalStateException::class, UnsatisfiedLinkError::class)
     fun initialize(config: PeriodicCheckConfig): PeriodicCheckController {
-        if (!isInitialized.compareAndSet(false, true)) {
+        if (isInitialized.get()) {
             throw IllegalStateException("RootKit is already initialized")
         }
+        // Load library BEFORE marking initialized — if load fails, the flag
+        // stays false so a subsequent call can retry or report a clear error.
         loadLibraryOnce()
+        isInitialized.set(true)
         val controller = PeriodicCheckControllerImpl(context, config, sessionKey)
         activeController.set(controller)
         return controller
@@ -404,9 +410,6 @@ class RootKit(context: Context) : Closeable {
 
     /**
      * Get detailed detection results for all runtime tampering checks.
-     * 
-     * Note: Native hook detection details may contain null values indicating
-     * detection failures.
      */
     fun getRuntimeTamperingDetails(): Map<String, Map<String, Any?>> {
         checkInitialized()

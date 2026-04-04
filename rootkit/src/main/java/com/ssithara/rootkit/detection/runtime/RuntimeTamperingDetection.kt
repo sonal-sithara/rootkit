@@ -206,9 +206,6 @@ internal class RuntimeTamperingDetection(context: Context) : DetectorResult(cont
      * checks to produce a granular breakdown — this is intentional because the
      * per-vector detail methods are more expensive than the summary and are only
      * called when the caller explicitly needs them.
-     * 
-     * Note: Native hook detection details may contain null values indicating
-     * detection failures.
      */
     fun getComprehensiveDetectionDetails(): Map<String, Map<String, Any?>> {
         return mapOf(

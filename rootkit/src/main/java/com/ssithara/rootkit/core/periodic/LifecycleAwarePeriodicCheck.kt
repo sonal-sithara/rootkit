@@ -147,6 +147,7 @@ class LifecycleAwarePeriodicCheck(
  * @param lifecycle The lifecycle to observe.
  * @return The [LifecycleAwarePeriodicCheck] wrapper (already attached).
  */
+@Keep
 fun PeriodicCheckController.bindToLifecycle(lifecycle: Lifecycle): LifecycleAwarePeriodicCheck {
     return LifecycleAwarePeriodicCheck.bind(this, lifecycle)
 }

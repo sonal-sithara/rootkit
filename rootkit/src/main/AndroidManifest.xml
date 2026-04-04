@@ -1,17 +1,21 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:tools="http://schemas.android.com/apk/tools"
 >
 
-    <uses-permission
-        android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission"
-    />
+    <!--
+    QUERY_ALL_PACKAGES permission has been REMOVED from the library manifest.
 
-    <application
-        android:zygotePreloadName="com.ssithara.rootkit.core.AppZygote"
-        tools:targetApi="29"
-    />
+    If you need Magisk stub detection on Android 11+, you MUST declare this
+    permission in your app's own AndroidManifest.xml with a justification for
+    Google Play Store review:
+
+        <uses-permission
+            android:name="android.permission.QUERY_ALL_PACKAGES"
+            android:maxSdkVersion="32" />
+
+    See SDK.md for full details.
+    -->
 
 </manifest>
