@@ -21,7 +21,7 @@ import com.ssithara.rootkit.core.Result
  * Native method failures return [Result.ERROR] instead of treating them
  * as "no detection".
  */
-class FridaDetection(context: Context) : DetectorResult(context) {
+internal class FridaDetection(context: Context) : DetectorResult(context) {
 
     companion object {
         @JvmStatic

@@ -12,7 +12,7 @@ import com.ssithara.rootkit.core.Result
 import com.ssithara.rootkit.internal.dto.MagiskStubInfo
 import java.io.File
 
-class MagiskHideDetection(context: Context) : DetectorResult(context) {
+internal class MagiskHideDetection(context: Context) : DetectorResult(context) {
 
 
     private val flags = PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or

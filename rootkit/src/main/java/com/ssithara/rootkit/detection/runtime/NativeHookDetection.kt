@@ -26,7 +26,7 @@ import com.ssithara.rootkit.core.Result
  * Native method failures return [Result.ERROR] instead of treating them
  * as "no hook detected".
  */
-class NativeHookDetection(context: Context) : DetectorResult(context) {
+internal class NativeHookDetection(context: Context) : DetectorResult(context) {
 
     companion object {
         @JvmStatic

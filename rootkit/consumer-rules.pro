@@ -46,7 +46,7 @@
 
 # Keep AppZygote — its name is referenced in the library AndroidManifest and
 # must survive both the library and consumer build steps.
--keep class com.ssithara.rootkit.core.AppZygote { *; }
+-keepclassmembers class com.ssithara.rootkit.core.AppZygote { *; }
 
 # Retain Kotlin metadata so reflection-based libraries (e.g. kotlinx.serialization,
 # Moshi) can inspect the library's types correctly.

@@ -5,7 +5,8 @@
       "Bash(keytool:*)",
       "mcp__plugin_firebase_firebase__firebase_login",
       "mcp__plugin_firebase_firebase__firebase_get_environment",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(unzip -l /Users/sonalsithara/Projects/Personal/rootkit/rootkit/build/outputs/aar/rootkit-release.aar)"
     ]
   },
   "outputStyle": "Coding Vibes"

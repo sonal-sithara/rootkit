@@ -3,7 +3,7 @@ package com.ssithara.rootkit.core
 import android.content.Context
 import android.util.Log
 
-abstract class DetectorResult(protected val context: Context) {
+internal abstract class DetectorResult(protected val context: Context) {
 
     companion object {
         private const val TAG = "DetectorResult"

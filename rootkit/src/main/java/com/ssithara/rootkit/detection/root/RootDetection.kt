@@ -17,7 +17,7 @@ import java.io.File
 import java.io.InputStreamReader
 import java.util.Locale
 
-class RootDetection(context: Context) : DetectorResult(context) {
+internal class RootDetection(context: Context) : DetectorResult(context) {
 
     override fun run(): Result {
         var detected: Result = Result.NOT_FOUND

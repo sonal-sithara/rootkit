@@ -17,4 +17,4 @@ typealias DetectionResult = com.ssithara.rootkit.core.Result
  * This is a typealias for [com.ssithara.rootkit.detection.runtime.RuntimeTamperingDetection.DetectionSummary],
  * exposed at the top-level package so consumers don't need to import from internal detection packages.
  */
-typealias RuntimeDetectionSummary = com.ssithara.rootkit.detection.runtime.RuntimeTamperingDetection.DetectionSummary
+internal typealias RuntimeDetectionSummary = com.ssithara.rootkit.detection.runtime.RuntimeTamperingDetection.DetectionSummary

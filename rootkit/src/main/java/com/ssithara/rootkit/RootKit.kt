@@ -421,7 +421,7 @@ class RootKit(context: Context) : Closeable {
     /**
      * Get a summary of runtime tampering detections.
      */
-    fun getRuntimeTamperingSummary(): RuntimeDetectionSummary? {
+    internal fun getRuntimeTamperingSummary(): RuntimeDetectionSummary? {
         checkInitialized()
         return try {
             runtimeTamperingDetection.getDetectionSummary()

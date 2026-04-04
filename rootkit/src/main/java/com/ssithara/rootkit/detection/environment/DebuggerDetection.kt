@@ -19,7 +19,7 @@ import com.ssithara.rootkit.detection.runtime.FridaDetection
  * RuntimeTamperingDetection provides comprehensive tampering detection
  * including Frida, Xposed, memory tampering, and native hooks.
  */
-class DebuggerDetection(
+internal class DebuggerDetection(
     context: Context,
     /**
      * Whether to include Frida detection in this detector.

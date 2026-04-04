@@ -8,7 +8,7 @@ import androidx.annotation.RequiresApi
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @Suppress("NewApi")
-class AppZygote : ZygotePreload {
+internal class AppZygote : ZygotePreload {
 
     companion object {
         private const val TAG = "AppZygote"

@@ -38,7 +38,7 @@ import kotlin.random.Random
  * - Detection failures are tracked separately from "not detected" results
  * - Uses [Result.ERROR] when sub-detectors fail internally
  */
-class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
+internal class RuntimeTamperingDetection(context: Context) : DetectorResult(context) {
 
     // -------------------------------------------------------------------------
     // Sub-detectors (lazy so native library is not required until first use)

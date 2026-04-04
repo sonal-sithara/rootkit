@@ -28,7 +28,7 @@ import com.ssithara.rootkit.core.Result
  * Native method failures return [Result.ERROR] instead of treating them
  * as "no detection".
  */
-class XposedDetection(context: Context) : DetectorResult(context) {
+internal class XposedDetection(context: Context) : DetectorResult(context) {
 
     companion object {
         // Known Xposed-related packages

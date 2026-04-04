@@ -30,7 +30,7 @@ import com.ssithara.rootkit.core.Result
  * Native method failures return [Result.ERROR] instead of treating them
  * as "no tampering detected".
  */
-class MemoryTamperingDetection(context: Context) : DetectorResult(context) {
+internal class MemoryTamperingDetection(context: Context) : DetectorResult(context) {
 
     companion object {
         @JvmStatic

@@ -8,7 +8,7 @@ import com.ssithara.rootkit.core.Result
 import java.io.File
 import java.util.Locale
 
-class EmulatorDetection(context: Context) : DetectorResult(context) {
+internal class EmulatorDetection(context: Context) : DetectorResult(context) {
 
     companion object {
         private const val TAG = "EmulatorDetection"

@@ -10,7 +10,7 @@ import java.io.FileInputStream
 import java.io.InputStreamReader
 import java.io.IOException
 
-class MagiskDetection(context: Context) : DetectorResult(context) {
+internal class MagiskDetection(context: Context) : DetectorResult(context) {
     @Throws(UnsatisfiedLinkError::class)
     private external fun isMagiskPresentNative(): Boolean
 
