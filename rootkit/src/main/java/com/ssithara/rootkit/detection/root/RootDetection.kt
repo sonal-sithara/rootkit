@@ -29,11 +29,13 @@ class RootDetection(context: Context) : DetectorResult(context) {
                 XIAOMI
             )
         ) {
-            if (rootBeer.isRooted()) {
+            // These brands may hide root from standard checks, but busybox reveals it
+            if (rootBeer.isRooted() || rootBeer.isRootedWithBusyBoxCheck()) {
                 detected = Result.FOUND
             }
         } else {
-            if (rootBeer.isRootedWithBusyBoxCheck()) {
+            // Standard root check for other brands
+            if (rootBeer.isRooted()) {
                 detected = Result.FOUND
             }
         }

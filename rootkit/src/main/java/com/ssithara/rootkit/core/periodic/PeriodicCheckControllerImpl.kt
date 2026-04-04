@@ -89,10 +89,10 @@ internal class PeriodicCheckControllerImpl(
     private val runtimeTamperingDetection by lazy { RuntimeTamperingDetection(appContext) }
 
     override val isRunning: Boolean
-        get() = _isRunning.get() && !disposed.get()
+        get() = !disposed.get() && _isRunning.get()
 
     override val isPaused: Boolean
-        get() = _isPaused.get() && !disposed.get()
+        get() = !disposed.get() && _isPaused.get()
 
     override fun start() {
         if (disposed.get()) {
@@ -253,9 +253,23 @@ internal class PeriodicCheckControllerImpl(
     private suspend fun executeParallel(): List<PeriodicCheckConfig.DetectionResult> = coroutineScope {
         config.detections.map { detectionType ->
             async {
-                val result = executeDetectionSafely(detectionType)
-                notifyDetectionResult(detectionType, result)
-                result
+                try {
+                    val result = executeDetectionSafely(detectionType)
+                    notifyDetectionResult(detectionType, result)
+                    result
+                } catch (e: CancellationException) {
+                    throw e  // Don't catch cancellation
+                } catch (e: Throwable) {
+                    // This shouldn't happen since executeDetectionSafely catches exceptions,
+                    // but Defensive catch in case of unexpected errors
+                    val errorResult = PeriodicCheckConfig.DetectionResult(
+                        detectionType = detectionType,
+                        result = Result.ERROR,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    notifyDetectionResult(detectionType, errorResult)
+                    errorResult
+                }
             }
         }.awaitAll()
     }

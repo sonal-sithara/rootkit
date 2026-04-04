@@ -19,8 +19,10 @@ class AppZygote : ZygotePreload {
             System.loadLibrary("rootkit")
         } catch (e: UnsatisfiedLinkError) {
             Log.e(TAG, "Failed to load rootkit library during zygote preload: ${e.message}", e)
+            throw e  // Fail fast - do not continue with broken library
         } catch (e: Exception) {
             Log.e(TAG, "Unexpected error loading rootkit library during zygote preload: ${e.message}", e)
+            throw e  // Fail fast on unexpected errors too
         }
     }
 }

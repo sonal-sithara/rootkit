@@ -5,6 +5,7 @@ import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.util.concurrent.atomic.AtomicInteger
 
 internal class ShellEx {
 
@@ -32,9 +33,10 @@ internal class ShellEx {
             BufferedWriter(OutputStreamWriter(localProcess.outputStream)).use { out ->
                 BufferedReader(InputStreamReader(localProcess.inputStream)).use { `in` ->
                     try {
-                        var line: String?
-                        while (`in`.readLine().also { line = it } != null) {
-                            fullResponse.add(line!!)
+                        var line: String? = `in`.readLine()
+                        while (line != null) {
+                            fullResponse.add(line)
+                            line = `in`.readLine()
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Error reading command output", e)
@@ -72,10 +74,10 @@ internal class ShellEx {
             // Close stdin so interactive commands do not block waiting for input
             process.outputStream.close()
 
-            var exitCode = -1
+            val exitCode = AtomicInteger(-1)
             val waiter = Thread {
                 try {
-                    exitCode = process.waitFor()
+                    exitCode.set(process.waitFor())
                 } catch (_: InterruptedException) {
                     Thread.currentThread().interrupt()
                 }
@@ -90,7 +92,7 @@ internal class ShellEx {
                 // Process still running after timeout → su is present and accepting input
                 waiter.isAlive -> true
                 // Process finished cleanly
-                else -> exitCode == 0
+                else -> exitCode.get() == 0
             }
         } catch (e: Exception) {
             false

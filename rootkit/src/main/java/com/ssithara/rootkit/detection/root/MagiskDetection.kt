@@ -37,15 +37,13 @@ class MagiskDetection(context: Context) : DetectorResult(context) {
             val file = File("/proc/self/mounts")
             FileInputStream(file).use { fis ->
                 BufferedReader(InputStreamReader(fis)).use { reader ->
-                    var str: String?
-                    while (reader.readLine().also { str = it } != null) {
+                    reader.lineSequence().forEach { line ->
                         for (path in blackListedMountPaths) {
-                            if (str?.contains(path) == true) {
+                            if (line.contains(path)) {
                                 isMagiskPresent = Result.FOUND
-                                break
+                                return@forEach
                             }
                         }
-                        if (isMagiskPresent == Result.FOUND) break
                     }
                 }
             }

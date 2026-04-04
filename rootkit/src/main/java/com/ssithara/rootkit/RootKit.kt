@@ -162,15 +162,8 @@ class RootKit(context: Context) : Closeable {
      */
     @Throws(UnsatisfiedLinkError::class)
     private fun loadLibraryOnce() {
-        if (isLibraryLoaded.get()) {
-            return
-        }
-        synchronized(isLibraryLoaded) {
-            if (isLibraryLoaded.get()) {
-                return
-            }
+        if (isLibraryLoaded.compareAndSet(false, true)) {
             System.loadLibrary("rootkit")
-            isLibraryLoaded.set(true)
         }
     }
 
@@ -300,12 +293,11 @@ class RootKit(context: Context) : Closeable {
             rootDetection.runSafely()
         )
 
-        val isRooted = if (Result.FOUND in detections)
-            Result.FOUND
-        else if (Result.ERROR in detections)
-            Result.ERROR
-        else
-            Result.NOT_FOUND
+        val isRooted = when {
+            detections.any { it == Result.FOUND } -> Result.FOUND
+            detections.any { it == Result.ERROR } -> Result.ERROR
+            else -> Result.NOT_FOUND
+        }
 
         return EncryptionService.encryptWithBase64Key(isRooted.name, sessionKey)
     }
@@ -379,12 +371,7 @@ class RootKit(context: Context) : Closeable {
      */
     fun isFridaDetected(): String {
         checkInitialized()
-        val result = try {
-            if (runtimeTamperingDetection.isFridaDetected()) Result.FOUND else Result.NOT_FOUND
-        } catch (e: Throwable) {
-            Log.e(TAG, "Frida detection failed: ${e.message}", e)
-            Result.ERROR
-        }
+        val result = if (runtimeTamperingDetection.isFridaDetected()) Result.FOUND else Result.NOT_FOUND
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
@@ -393,12 +380,7 @@ class RootKit(context: Context) : Closeable {
      */
     fun isXposedDetected(): String {
         checkInitialized()
-        val result = try {
-            if (runtimeTamperingDetection.isXposedDetected()) Result.FOUND else Result.NOT_FOUND
-        } catch (e: Throwable) {
-            Log.e(TAG, "Xposed detection failed: ${e.message}", e)
-            Result.ERROR
-        }
+        val result = if (runtimeTamperingDetection.isXposedDetected()) Result.FOUND else Result.NOT_FOUND
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
@@ -407,12 +389,7 @@ class RootKit(context: Context) : Closeable {
      */
     fun isMemoryTamperingDetected(): String {
         checkInitialized()
-        val result = try {
-            if (runtimeTamperingDetection.isMemoryTamperingDetected()) Result.FOUND else Result.NOT_FOUND
-        } catch (e: Throwable) {
-            Log.e(TAG, "Memory tampering detection failed: ${e.message}", e)
-            Result.ERROR
-        }
+        val result = if (runtimeTamperingDetection.isMemoryTamperingDetected()) Result.FOUND else Result.NOT_FOUND
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
@@ -421,12 +398,7 @@ class RootKit(context: Context) : Closeable {
      */
     fun isNativeHookDetected(): String {
         checkInitialized()
-        val result = try {
-            if (runtimeTamperingDetection.isNativeHookDetected()) Result.FOUND else Result.NOT_FOUND
-        } catch (e: Throwable) {
-            Log.e(TAG, "Native hook detection failed: ${e.message}", e)
-            Result.ERROR
-        }
+        val result = if (runtimeTamperingDetection.isNativeHookDetected()) Result.FOUND else Result.NOT_FOUND
         return EncryptionService.encryptWithBase64Key(result.name, sessionKey)
     }
 
