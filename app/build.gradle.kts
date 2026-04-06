@@ -10,10 +10,10 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("keystore/release.jks")
-            storePassword = "rootkit2024"
-            keyAlias = "release"
-            keyPassword = "rootkit2024"
+            // storeFile = file("keystore/release.jks")
+            // storePassword = "rootkit2024"
+            // keyAlias = "release"
+            // keyPassword = "rootkit2024"
         }
     }
 
